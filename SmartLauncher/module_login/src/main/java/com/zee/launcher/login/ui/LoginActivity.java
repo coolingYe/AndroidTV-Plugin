@@ -3,6 +3,7 @@ package com.zee.launcher.login.ui;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.inputmethod.InputMethodManager;
 
@@ -105,11 +106,14 @@ public class LoginActivity extends BaseActivity {
     }
 
     @Override
-    public void onBackPressed() {
-        /*if (mLoginFragment != null && mLoginFragment.onBackPressed()) {
-            return;
-        }*/
-        super.onBackPressed();
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
+            boolean isGuideDone = SPUtils.getInstance().getBoolean(SharePrefer.GuideDone);
+            if(isGuideDone && mLoginFragment != null){
+                return true;
+            }
+        }
+        return super.onKeyDown(keyCode, event);
     }
 
     @Override

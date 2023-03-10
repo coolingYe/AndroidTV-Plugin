@@ -68,7 +68,7 @@ public interface ApiService {
     @GET(BaseConstants.basePath + BaseConstants.ApiPath.SERVICE_PACKAGE_INFO)
     Observable<BaseResp<ServicePkgInfoResp>> getServicePackInfo(@Query("deviceSn") String deviceSn);
 
-    @GET(BaseConstants.basePath + "/dmsmgr/purchase/device/colorThemeInfo")
+    @GET(BaseConstants.basePath + "/dmsmgr/purchase/device/themePackage")
     Observable<BaseResp<ThemeInfoResp>> getThemeInfo(@Query("deviceSn") String deviceSn);
 
     @POST(BaseConstants.basePath + BaseConstants.ApiPath.PRODUCT_RECOMMEND_LIST)

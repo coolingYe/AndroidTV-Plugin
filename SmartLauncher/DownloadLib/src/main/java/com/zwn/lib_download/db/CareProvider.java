@@ -16,10 +16,11 @@ public class CareProvider extends ContentProvider {
     private static final String TAG = "CareProvider";
     private static final boolean DEBUG = true;
     private static final String DATABASE_NAME = "care.db";
-    private static final int DATABASE_VERSION = 1;
+    private static final int DATABASE_VERSION = 2;
 
     static final String AUTHORITY = "com.zee.launcher.settings";
     static final String TABLE_DOWNLOAD_INFO = "download_info";
+    static final String TABLE_APP_LIB_INFO = "app_lib_info";
 
     private static DatabaseHelper sOpenHelper;
 
@@ -41,6 +42,17 @@ public class CareProvider extends ContentProvider {
             "extraId VARCHAR(32)," +
             "extraOne INTEGER," +
             "extraTwo TEXT," +
+            "saveTime LONG," +
+            "describe TEXT" +
+            ");";
+
+    private static final String SQL_TABLE_APP_LIB_INFO = "CREATE TABLE " + TABLE_APP_LIB_INFO + " (" +
+            "_id INTEGER PRIMARY KEY," +
+            "fileId VARCHAR(32) UNIQUE," +
+            "packageName VARCHAR(128)," +
+            "libPath TEXT," +
+            "libMd5 VARCHAR(32)," +
+            "status INTEGER," +
             "saveTime LONG," +
             "describe TEXT" +
             ");";
@@ -146,12 +158,16 @@ public class CareProvider extends ContentProvider {
         public void onCreate(SQLiteDatabase db) {
             if (DEBUG) Log.d(TAG, "creating new zwn care database");
             db.execSQL(SQL_TABLE_DOWNLOAD_INFO);
+            db.execSQL(SQL_TABLE_APP_LIB_INFO);
         }
 
         @Override
         public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
             if (DEBUG) Log.d(TAG, "onUpgrade zwn care database, oldVersion="
                     + oldVersion + ", newVersion=" + newVersion);
+            if(oldVersion == 1){
+                db.execSQL(SQL_TABLE_APP_LIB_INFO);
+            }
         }
     }
 

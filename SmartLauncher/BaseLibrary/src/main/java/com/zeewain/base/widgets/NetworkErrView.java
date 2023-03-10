@@ -68,11 +68,11 @@ public class NetworkErrView extends ConstraintLayout implements View.OnFocusChan
         if (cardView == null) return;
         final int strokeWidth = DisplayUtil.dip2px(v.getContext(), 1);
         if (hasFocus) {
-            cardView.setStrokeColor(getResources().getColor(R.color.selectedStrokeColorBlue));
+            cardView.setStrokeColor(0xFFFFFFFF);
             cardView.setStrokeWidth(strokeWidth);
             CommonUtils.scaleView(v, 1.1f);
         } else {
-            cardView.setStrokeColor(getResources().getColor(R.color.unselectedStrokeColor));
+            cardView.setStrokeColor(0x00FFFFFF);
             cardView.setStrokeWidth(0);
             v.clearAnimation();
             CommonUtils.scaleView(v, 1f);

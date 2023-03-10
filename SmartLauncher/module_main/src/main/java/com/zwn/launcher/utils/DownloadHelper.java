@@ -142,15 +142,20 @@ public class DownloadHelper {
         return downloadInfo;
     }
 
-    public static DownloadInfo buildSettingsAppDownloadInfo(Context context, UpgradeResp upgradeResp){
+    public static DownloadInfo buildCommonAppDownloadInfo(Context context, UpgradeResp upgradeResp, String softwareCode){
         DownloadInfo downloadInfo = new DownloadInfo();
-        downloadInfo.fileId = BaseConstants.SETTINGS_APP_SOFTWARE_CODE;
-        downloadInfo.fileName = "ZeeSettings";
+        if(BaseConstants.SETTINGS_APP_SOFTWARE_CODE.equals(softwareCode)){
+            downloadInfo.fileId = BaseConstants.SETTINGS_APP_SOFTWARE_CODE;
+            downloadInfo.fileName = "ZeeSettings";
+            downloadInfo.mainClassPath = BaseConstants.SETTINGS_APP_PACKAGE_NAME;
+        }else if(BaseConstants.ZEE_GESTURE_AI_APP_SOFTWARE_CODE.equals(softwareCode)){
+            downloadInfo.fileId = BaseConstants.ZEE_GESTURE_AI_APP_SOFTWARE_CODE;
+            downloadInfo.fileName = "ZeeGestureAI";
+            downloadInfo.mainClassPath = BaseConstants.ZEE_GESTURE_AI_APP_PACKAGE_NAME;
+        }
         downloadInfo.fileImgUrl = "";
-        downloadInfo.mainClassPath = BaseConstants.SETTINGS_APP_PACKAGE_NAME;
         downloadInfo.url = upgradeResp.getPackageUrl();
         downloadInfo.version = upgradeResp.getSoftwareVersion();
-        downloadInfo.type = BaseConstants.DownloadFileType.SETTINGS_APP;
         downloadInfo.filePath = CommonUtils.getFileUsePath(downloadInfo.fileId, downloadInfo.version, downloadInfo.type, context);;
         downloadInfo.packageMd5 = upgradeResp.getPackageMd5();
         downloadInfo.extraId = "";

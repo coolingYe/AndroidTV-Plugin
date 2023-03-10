@@ -29,5 +29,5 @@ android {
 }
 
 dependencies {
-    api project(':module_login')
+    api project(':BaseLibrary')
 }

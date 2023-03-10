@@ -6,6 +6,9 @@ public class BaseConstants {
 
     public static final String PACKAGE_INSTALLED_ACTION = "plugin.install.SESSION_API_PACKAGE_INSTALLED";
     public static final String MANAGER_INSTALLED_ACTION = "manager.launcher.SESSION_API_PACKAGE_INSTALLED";
+    public static final String GESTURE_AI_SERVICE_CHECK_ACTION = "GESTURE_AI_SERVICE_CHECK";
+    public static final String EXTRA_INSTALLED_PACKAGE_NAME = "InstalledPackageName";
+    public static final String EXTRA_INSTALLED_APP_TYPE = "InstalledAppType";
     public static final String EXTRA_REGISTER = "Register";
     public static final String EXTRA_UPGRADE_INFO = "UpgradeInfo";
     public static final String EXTRA_PLUGIN_NAME = "PluginName";
@@ -32,6 +35,8 @@ public class BaseConstants {
     public static final String MANAGER_APP_SOFTWARE_CODE = "ZWN_SW_ANDROID_AIIP_090";
     public static final String SETTINGS_APP_SOFTWARE_CODE = "ZWN_SW_ANDROID_AIIP_091";
     public static final String SETTINGS_APP_PACKAGE_NAME = "com.zee.setting";
+    public static final String ZEE_GESTURE_AI_APP_SOFTWARE_CODE = "ZWN_SW_ANDROID_AIIP_092";
+    public static final String ZEE_GESTURE_AI_APP_PACKAGE_NAME = "com.zeewain.ai";
 
     //used for third party app default enable all Permission
     public static final String PERSIST_SYS_PERMISSION_PKG = "persist.sys.zeewain.pkgs";
@@ -57,6 +62,10 @@ public class BaseConstants {
     /**
      * use for unity Courseware
      */
+    public static String ACTION_CRASH_MSG = "com.zee.unity.CRASH_MSG_ACTION";
+    public static final String EXTRA_CRASH_MSG = "CrashMsg";
+    public static final String EXTRA_CRASH_PKG = "CrashPkg";
+
     public static final String EXTRA_SHOW_ACTION = "ShowAction";
     public static class ShowCode{
         public static int CODE_CAMERA_ERROR = 1;
@@ -71,6 +80,7 @@ public class BaseConstants {
         public static final int HOST_PLUGIN_PKG = 2;
         public static final int MANAGER_APP = 10;
         public static final int SETTINGS_APP = 11;
+        public static final int ZEE_GESTURE_AI_APP = 12;
     }
 
     public static class ApiPath{
@@ -89,12 +99,12 @@ public class BaseConstants {
     public static final int API_HANDLE_SUCCESS = 0;
 
     //正式环境&测试环境使用
-    public static final boolean buildRelease = true;
-    public static final String baseUrl = buildRelease ? "https://aiip.zeewain.com" : "https://www.zeewain.com";
-    public static final String basePath = buildRelease ? "/api" : "/aiip-test/api";
+//    public static final boolean buildRelease = false;
+//    public static final String baseUrl = buildRelease ? "https://aiip.zeewain.com" : "https://www.zeewain.com";
+//    public static final String basePath = buildRelease ? "/api" : "/aiip-test/api";
 
     //开发环境使用
-    /*public static final String baseUrl = "https://www.zeewain.com";
-    public static final String basePath = "/aiip-debug/api";*/
+    public static final String baseUrl = "https://www.zeewain.com";
+    public static final String basePath = "/aiip-debug/api";
 
 }

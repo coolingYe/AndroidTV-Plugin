@@ -55,8 +55,10 @@ repluginHostConfig {
 dependencies {
 
     implementation project(':module_guide')
+    implementation project(':module_login')
     implementation project(':DownloadLib')
     implementation project(':ZeeManager')
+    implementation project(':ZeeAIManager')
     implementation project(':HostLib')
 
     //缓存 Video

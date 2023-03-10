@@ -11,7 +11,10 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.IntentSender;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageInstaller;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
@@ -20,6 +23,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 
 import com.zee.manager.IZeeManager;
+import com.zeewain.ai.ZeeAiManager;
 import com.zeewain.base.config.BaseConstants;
 import com.zeewain.base.data.protocol.response.BaseResp;
 import com.zeewain.base.utils.ApkUtil;
@@ -31,9 +35,11 @@ import com.zwn.launcher.utils.DownloadHelper;
 import com.zwn.lib_download.DownloadListener;
 import com.zwn.lib_download.DownloadService;
 import com.zwn.lib_download.db.CareController;
+import com.zwn.lib_download.model.AppLibInfo;
 import com.zwn.lib_download.model.DownloadInfo;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -46,7 +52,7 @@ import io.reactivex.observers.DisposableObserver;
 import io.reactivex.schedulers.Schedulers;
 
 public class ZeeServiceManager {
-    private static final String TAG = "ZeeServiceManager";
+    private static final String TAG = "ZeeService";
     private static Context appContext;
     private CareBroadcastReceiver careBroadcastReceiver;
     private static final ExecutorService mFixedPool = Executors.newFixedThreadPool(1);
@@ -105,7 +111,7 @@ public class ZeeServiceManager {
                 downloadListenerList.get(i).onSuccess(fileId, type, file);
             }
             if(BaseConstants.DownloadFileType.PLUGIN_APP == type || BaseConstants.DownloadFileType.MANAGER_APP == type
-                    || BaseConstants.DownloadFileType.SETTINGS_APP == type){
+                    || BaseConstants.DownloadFileType.SETTINGS_APP == type || BaseConstants.DownloadFileType.ZEE_GESTURE_AI_APP == type){
                 addToQueueNextCheckInstall(fileId);
             }else if(BaseConstants.DownloadFileType.HOST_APP == type){
                 handleHostInstall(file.getPath(), fileId);
@@ -156,21 +162,30 @@ public class ZeeServiceManager {
             Log.i(TAG, "handleCommonApkInstall() prepare for installation fileId=" + installingFileId);
             if(installingFileId != null){
                 final DownloadInfo downloadInfo = CareController.instance.getDownloadInfoByFileId(installingFileId);
-                if(downloadInfo != null && FileUtils.isFileExist(downloadInfo.filePath)){
+                if(downloadInfo != null && downloadInfo.status == DownloadInfo.STATUS_SUCCESS &&  FileUtils.isFileExist(downloadInfo.filePath)){
                     mFixedPool.execute(() -> {
+                        AppLibInfo appLibInfo = new AppLibInfo(downloadInfo.fileId, downloadInfo.mainClassPath);
+                        boolean addResult = CareController.instance.addAppLibInfo(appLibInfo);
+                        if(!addResult){
+                            CareController.instance.updateAppLibInfo(appLibInfo);
+                        }
+
                         //used for third party app default enable all Permission
-                        /*String pkgNames = SystemProperties.get(BaseConstants.PERSIST_SYS_PERMISSION_PKG);
-                        if(!TextUtils.isEmpty(pkgNames)){
-                            SystemProperties.set(BaseConstants.PERSIST_SYS_PERMISSION_PKG, pkgNames + ";" + downloadInfo.mainClassPath);
-                        }else{
-                            SystemProperties.set(BaseConstants.PERSIST_SYS_PERMISSION_PKG, downloadInfo.mainClassPath);
-                        }*/
+                            /*String pkgNames = SystemProperties.get(BaseConstants.PERSIST_SYS_PERMISSION_PKG);
+                            if(!TextUtils.isEmpty(pkgNames)){
+                                SystemProperties.set(BaseConstants.PERSIST_SYS_PERMISSION_PKG, pkgNames + ";" + downloadInfo.mainClassPath);
+                            }else{
+                                SystemProperties.set(BaseConstants.PERSIST_SYS_PERMISSION_PKG, downloadInfo.mainClassPath);
+                            }*/
                         Intent intent = new Intent();
                         intent.setAction(BaseConstants.PACKAGE_INSTALLED_ACTION);
                         intent.putExtra(BaseConstants.EXTRA_PLUGIN_NAME, downloadInfo.fileId);
-                        intent.setPackage(appContext.getPackageName());
-                        Log.i(TAG, "handleCommonApkInstall() install fileId = " + downloadInfo.fileId);
+                        intent.putExtra(BaseConstants.EXTRA_INSTALLED_PACKAGE_NAME, downloadInfo.mainClassPath);
+                        intent.putExtra(BaseConstants.EXTRA_INSTALLED_APP_TYPE, downloadInfo.type);
                         intent.putExtra(BaseConstants.EXTRA_PLUGIN_FILE_PATH, downloadInfo.filePath);
+                        intent.setPackage(appContext.getPackageName());
+
+                        Log.i(TAG, "handleCommonApkInstall() prepare install fileId = " + downloadInfo.fileId);
                         PendingIntent pendingIntent = PendingIntent.getBroadcast(appContext, 0, intent,
                                 PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE );
                         IntentSender statusReceiver = pendingIntent.getIntentSender();
@@ -205,12 +220,107 @@ public class ZeeServiceManager {
         appContext.startActivity(intent);
     }
 
+    private static void checkRebootPluginAppLib(Context context) {
+        List<AppLibInfo> appLibInfoList = CareController.instance.getInstalledAppLibInfo();
+        if(appLibInfoList.size() > 0){
+            PackageManager packageManager = context.getPackageManager();
+            for (AppLibInfo appLibInfo : appLibInfoList){
+                try {
+                    PackageInfo packageInfo = packageManager.getPackageInfo(appLibInfo.packageName, 0);
+                    File libMainFile = new File(packageInfo.applicationInfo.nativeLibraryDir + "/" + AppLibInfo.LIB_NAME);
+                    if(libMainFile.exists()){
+                        String fileMD5 = FileUtils.file2MD5(libMainFile);
+                        Log.i(TAG, "checkRebootPluginAppLib() packageName=" + appLibInfo.packageName + ", libMainFile md5=" + fileMD5);
+                        if(appLibInfo.libMd5.equals(fileMD5)){
+                            //that's nice;
+                        }else{
+                            Log.w(TAG, libMainFile.getAbsolutePath() + " is " + fileMD5 + ", but DB is " + appLibInfo.libMd5);
+                            DownloadInfo downloadInfo = CareController.instance.getDownloadInfoByFileId(appLibInfo.fileId);
+                            if(downloadInfo != null && downloadInfo.status == DownloadInfo.STATUS_SUCCESS){
+                                File apkFile = new File(downloadInfo.filePath);
+                                if(apkFile.exists()){
+                                    if(downloadInfo.packageMd5.equals(FileUtils.file2MD5(apkFile))) {
+                                        addToQueueNextCheckInstall(downloadInfo.fileId);
+                                    }else{
+                                        if(apkFile.delete() && CareController.instance.updateDownloadInfoStatus(downloadInfo.fileId, DownloadInfo.STATUS_PENDING) > 0){
+                                            if(getInstance().getDownloadBinder() != null){
+                                                getInstance().getDownloadBinder().startDownload(downloadInfo.fileId);
+                                            }
+                                        }else{
+                                            CareController.instance.deleteDownloadInfo(downloadInfo.fileId);
+                                        }
+                                    }
+                                }else if(FileUtils.isFileExist(packageInfo.applicationInfo.sourceDir)){
+                                    File baseApk = new File(packageInfo.applicationInfo.sourceDir);
+                                    if(downloadInfo.packageMd5.equals(FileUtils.file2MD5(baseApk))) {
+                                        com.qihoo360.replugin.utils.FileUtils.moveFile(new File(packageInfo.applicationInfo.sourceDir), new File(downloadInfo.filePath));
+                                        addToQueueNextCheckInstall(downloadInfo.fileId);
+                                    }else{
+                                        CareController.instance.deleteDownloadInfo(downloadInfo.fileId);
+                                    }
+                                }else{
+                                    CareController.instance.deleteDownloadInfo(downloadInfo.fileId);
+                                }
+                            }
+                        }
+                    }
+                } catch (PackageManager.NameNotFoundException | IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    public static void checkPluginAppRelay(Context context){
+        List<DownloadInfo> downloadInfoList = CareController.instance.getAllDownloadInfo("(status=" + DownloadInfo.STATUS_SUCCESS + " and type<0)");
+        Log.e(TAG, "checkPluginAppRelay()  downloadInfoList.size()=" + downloadInfoList.size());
+        for(DownloadInfo downloadInfo: downloadInfoList){
+            if(downloadInfo.status == DownloadInfo.STATUS_SUCCESS){
+                File downloadedFile = new File(downloadInfo.filePath);
+                if(downloadedFile.exists()){
+                    String fileMD5 = FileUtils.file2MD5(downloadedFile);
+                    if(!downloadInfo.packageMd5.equals(fileMD5)){
+                        Log.e(TAG, "checkPluginAppRelay() file md5 not match! " + downloadInfo.filePath);
+                        if(downloadedFile.delete()){
+                            CareController.instance.updateDownloadInfoStatus(downloadInfo.fileId, DownloadInfo.STATUS_PENDING);
+                        }else {
+                            CareController.instance.updateDownloadInfoStatus(downloadInfo.fileId, DownloadInfo.STATUS_STOPPED);
+                        }
+                    }
+                }else{
+                    Log.e(TAG, "checkPluginAppRelay() file lost " + downloadInfo.filePath);
+                    CareController.instance.updateDownloadInfoStatus(downloadInfo.fileId, DownloadInfo.STATUS_PENDING);
+                }
+            }
+        }
+
+        File licenseFile = new File(BaseConstants.LICENSE_V2_FILE_PATH);
+        if(licenseFile.exists()){
+            if(licenseFile.length() == 0){
+                licenseFile.delete();
+            }else{
+                boolean isNullContent = FileUtils.isNullContentFile(licenseFile, 3*1024);
+                if(isNullContent){
+                    licenseFile.delete();
+                }
+            }
+        }
+
+
+        checkRebootPluginAppLib(context);
+    }
+
     private final ServiceConnection downloadServiceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             downloadBinder = (DownloadService.DownloadBinder) service;
             if (downloadBinder != null) {
                 downloadBinder.registerDownloadListener(downloadListener);
+            }
+
+            List<DownloadInfo> downloadInfoList = CareController.instance.getLatestPendingList();
+            if(downloadInfoList.size() > 0){
+                downloadBinder.startDownload(downloadInfoList.get(0));
             }
         }
 
@@ -241,19 +351,59 @@ public class ZeeServiceManager {
             if(BaseConstants.PACKAGE_INSTALLED_ACTION.equals(intent.getAction())){
                 Bundle extras = intent.getExtras();
                 int status = extras.getInt(PackageInstaller.EXTRA_STATUS);
-                String pluginName = extras.getString(BaseConstants.EXTRA_PLUGIN_NAME);
+                final String pluginName = extras.getString(BaseConstants.EXTRA_PLUGIN_NAME);
                 if(lastUnzipDonePlugin != null){
                     if(lastUnzipDonePlugin.equals(pluginName)){
                         lastUnzipDonePlugin = null;
                     }
                 }
-                Log.i(TAG, "handleCommonApkInstall() status=" + status + ", pluginName=" + pluginName);
-                String pluginFilePath = extras.getString(BaseConstants.EXTRA_PLUGIN_FILE_PATH);
+                Log.i(TAG, "onReceive install action, install status=" + status + ", pluginName=" + pluginName);
                 if(PackageInstaller.STATUS_SUCCESS == status){
-                    File file = new File(pluginFilePath);
-                    if (file.exists()) {
-                        file.delete();
+                    int appType = extras.getInt(BaseConstants.EXTRA_INSTALLED_APP_TYPE, -10000);
+                    if(appType == BaseConstants.DownloadFileType.PLUGIN_APP){
+                        String pluginPackageName = extras.getString(BaseConstants.EXTRA_INSTALLED_PACKAGE_NAME);
+                        String pluginFilePath = extras.getString(BaseConstants.EXTRA_PLUGIN_FILE_PATH);
+                        if(pluginPackageName != null && pluginFilePath != null){
+                            PackageManager packageManager = context.getPackageManager();
+                            try {
+                                PackageInfo packageInfo = packageManager.getPackageInfo(pluginPackageName, 0);
+                                File libMainFile = new File(packageInfo.applicationInfo.nativeLibraryDir + "/" + AppLibInfo.LIB_NAME);
+                                if(libMainFile.exists()){
+                                    String fileMD5 = FileUtils.file2MD5(libMainFile);
+                                    Log.i(TAG, "onReceive install action, pluginPackageName=" + pluginPackageName + ", libMainFile md5=" + fileMD5);
+                                    if(!fileMD5.isEmpty()){
+                                        AppLibInfo appLibInfo = new AppLibInfo();
+                                        appLibInfo.fileId = pluginName;
+                                        appLibInfo.libPath = libMainFile.getAbsolutePath();
+                                        appLibInfo.libMd5 = fileMD5;
+                                        appLibInfo.packageName = pluginPackageName;
+                                        appLibInfo.status = AppLibInfo.STATUS_INSTALLED;
+                                        appLibInfo.saveTime = System.currentTimeMillis();
+                                        int updateResult = CareController.instance.updateAppLibInfo(appLibInfo);
+                                        if(updateResult > 0){
+                                            FileUtils.deleteFile(pluginFilePath);
+                                        }
+                                    }else{
+                                        FileUtils.deleteFile(pluginFilePath);
+                                    }
+                                }else{
+                                    FileUtils.deleteFile(pluginFilePath);
+                                }
+                            } catch (PackageManager.NameNotFoundException e) {
+                                e.printStackTrace();
+                                Log.e(TAG, "handleCommonApkInstall() NameNotFoundException=" + pluginPackageName);
+                                FileUtils.deleteFile(pluginFilePath);
+                            }
+                        }
+                    }else{
+                        String pluginFilePath = extras.getString(BaseConstants.EXTRA_PLUGIN_FILE_PATH);
+                        FileUtils.deleteFile(pluginFilePath);
+
+                        if(BaseConstants.ZEE_GESTURE_AI_APP_SOFTWARE_CODE.equals(pluginName)){
+                            sendGestureAiServiceCheck(context);
+                        }
                     }
+
                     installingFileId = null;
                     handleCommonApkInstall();
                 }else{
@@ -269,6 +419,12 @@ public class ZeeServiceManager {
                     updateDeviceHealth();
             }
         }
+    }
+
+    private static void sendGestureAiServiceCheck(Context context){
+        Intent intent = new Intent();
+        intent.setAction(BaseConstants.GESTURE_AI_SERVICE_CHECK_ACTION);
+        context.sendBroadcast(intent);
     }
 
     private static void updateDeviceHealth(){
@@ -294,8 +450,17 @@ public class ZeeServiceManager {
                 if(downloadInfo.status == DownloadInfo.STATUS_SUCCESS){
                     File file = new File(downloadInfo.filePath);
                     if (file.exists()){
-                        if(!isInQueue(downloadInfo.fileId)) {
-                            addToQueueNextCheckInstall(downloadInfo.fileId);
+                        if(downloadInfo.packageMd5.equals(FileUtils.file2MD5(file))) {
+                            if (!isInQueue(downloadInfo.fileId)) {
+                                addToQueueNextCheckInstall(downloadInfo.fileId);
+                            }
+                        }else{
+                            if(file.delete() && CareController.instance.deleteDownloadInfo(downloadInfo.fileId) > 0){
+                                return downloadBinder.startDownload(downloadInfo);
+                            }else{
+                                Log.e(TAG, "ZeeManager APK file damage, clear failed!");
+                                return false;
+                            }
                         }
                     }else{//something wrong? the file removed or same version update?
                         CareController.instance.deleteDownloadInfo(downloadInfo.fileId);
@@ -313,15 +478,24 @@ public class ZeeServiceManager {
         return true;
     }
 
-    public boolean handleSettingsAppUpgrade(final UpgradeResp upgradeResp){
-        DownloadInfo downloadInfo = CareController.instance.getDownloadInfoByFileId(BaseConstants.SETTINGS_APP_SOFTWARE_CODE);
+    public boolean handleCommonAppUpgrade(final UpgradeResp upgradeResp, final String softwareCode){
+        DownloadInfo downloadInfo = CareController.instance.getDownloadInfoByFileId(softwareCode);
         if(downloadInfo != null){
             if(downloadInfo.version.equals(upgradeResp.getSoftwareVersion())){//mean already add
                 if(downloadInfo.status == DownloadInfo.STATUS_SUCCESS){
                     File file = new File(downloadInfo.filePath);
                     if (file.exists()){
-                        if(!isInQueue(downloadInfo.fileId)) {
-                            addToQueueNextCheckInstall(downloadInfo.fileId);
+                        if(downloadInfo.packageMd5.equals(FileUtils.file2MD5(file))) {
+                            if (!isInQueue(downloadInfo.fileId)) {
+                                addToQueueNextCheckInstall(downloadInfo.fileId);
+                            }
+                        }else{
+                            if(file.delete() && CareController.instance.deleteDownloadInfo(downloadInfo.fileId) > 0){
+                                return downloadBinder.startDownload(downloadInfo);
+                            }else{
+                                Log.e(TAG, "Common APK file damage, clear failed!");
+                                return false;
+                            }
                         }
                     }else{//something wrong? the file removed or same version update?
                         CareController.instance.deleteDownloadInfo(downloadInfo.fileId);
@@ -331,10 +505,10 @@ public class ZeeServiceManager {
                     return downloadBinder.startDownload(downloadInfo);
                 }
             }else{//old version in db
-                return downloadBinder.startDownload(DownloadHelper.buildSettingsAppDownloadInfo(appContext, upgradeResp));
+                return downloadBinder.startDownload(DownloadHelper.buildCommonAppDownloadInfo(appContext, upgradeResp, softwareCode));
             }
         }else{
-            return downloadBinder.startDownload(DownloadHelper.buildSettingsAppDownloadInfo(appContext, upgradeResp));
+            return downloadBinder.startDownload(DownloadHelper.buildCommonAppDownloadInfo(appContext, upgradeResp, softwareCode));
         }
         return true;
     }
@@ -398,11 +572,63 @@ public class ZeeServiceManager {
     }
 
     public void release(Context context){
-        unRegisterBroadCast();
+        //unRegisterBroadCast();
+        Log.i(TAG, "release()");
         if(downloadBinder != null){
             downloadBinder.unRegisterDownloadListener(downloadListener);
             context.unbindService(downloadServiceConnection);
+            downloadBinder = null;
         }
+
+        if(zeeManager != null){
+            context.unbindService(managerServiceConnection);
+            zeeManager = null;
+        }
+
+        ZeeAiManager.getInstance().unbindAiService(context);
+    }
+
+    public void bindGestureAiService(Context context) {
+        ZeeAiManager.getInstance().setOnServiceStateListener(new ZeeAiManager.OnServiceStateListener() {
+            @Override
+            public void onServiceConnected() {
+
+            }
+
+            @Override
+            public void onServiceDisconnected() {
+                sendGestureAiServiceCheck(appContext);
+            }
+        });
+        ZeeAiManager.getInstance().bindAiService(context);
+    }
+
+    public void startGestureAi(boolean withActive){
+        ZeeAiManager.getInstance().startGestureAI(withActive);
+    }
+
+    public void stopGestureAi(){
+        ZeeAiManager.getInstance().stopGestureAI();
+    }
+
+    public boolean isGestureAIActive(){
+        return ZeeAiManager.getInstance().isGestureAIActive();
+    }
+
+    public static boolean isSettingGestureAIEnable(){
+        try {
+            Context settingContext = appContext.createPackageContext(BaseConstants.SETTINGS_APP_PACKAGE_NAME, Context.CONTEXT_IGNORE_SECURITY);
+            SharedPreferences sp = settingContext.getSharedPreferences("spUtils", Context.MODE_MULTI_PROCESS | Context.MODE_PRIVATE);
+            String gesture = sp.getString("Gesture", "");
+            Log.i(TAG, "gesture -> " + gesture);
+            if("open".equals(gesture)){
+                return true;
+            }
+        } catch (PackageManager.NameNotFoundException e) {
+            Log.e(TAG, "isSettingGestureAIEnable() err -> " + e);
+            e.printStackTrace();
+        }
+        return false;
     }
 
     public static final String CLIENT_ID = "ZeeWain";

@@ -42,12 +42,12 @@
             app:layout_constraintLeft_toLeftOf="@+id/txt_login_title"
             app:layout_constraintTop_toBottomOf="@+id/txt_login_title"
             app:layout_constraintRight_toRightOf="parent"
-            android:text="请登录您的账户及密码" />
+            android:text="请输入您的账户及密码" />
 
         <androidx.appcompat.widget.AppCompatEditText
             android:id="@+id/edit_login_account"
             style="@style/GuideEditStyle"
-            android:maxLength="16"
+            android:maxLength="32"
             app:layout_constraintLeft_toLeftOf="@+id/txt_login_summary"
             app:layout_constraintTop_toBottomOf="@+id/txt_login_summary"
             android:layout_marginTop="30dp"

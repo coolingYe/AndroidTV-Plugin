@@ -5,6 +5,7 @@ import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.KeyEvent;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
@@ -112,5 +113,19 @@ public class GuideActivity extends BaseActivity {
             }
         }
         super.onBackPressed();
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_HOME) {
+            NavDestination currentDestination = navController.getCurrentDestination();
+            if(currentDestination instanceof FragmentNavigator.Destination){
+                FragmentNavigator.Destination destination = (FragmentNavigator.Destination) currentDestination;
+                if(destination.getClassName().equals(StartFragment.class.getName())){
+                    return true;
+                }
+            }
+        }
+        return super.onKeyDown(keyCode, event);
     }
 }

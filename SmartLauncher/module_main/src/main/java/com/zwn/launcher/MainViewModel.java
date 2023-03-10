@@ -13,9 +13,11 @@ import com.zeewain.base.model.DataLoadState;
 import com.zeewain.base.model.LoadState;
 import com.zeewain.base.ui.BaseViewModel;
 import com.zeewain.base.utils.CommonUtils;
+import com.zeewain.base.utils.DateTimeUtils;
 import com.zeewain.base.utils.FileUtils;
 import com.zeewain.base.utils.SPUtils;
 import com.zwn.launcher.data.DataRepository;
+import com.zwn.launcher.data.model.UpgradeLoadState;
 import com.zwn.launcher.data.protocol.request.PublishReq;
 import com.zwn.launcher.data.protocol.request.UploadLogReq;
 import com.zwn.launcher.data.protocol.request.UpgradeReq;
@@ -24,8 +26,6 @@ import com.zwn.launcher.data.protocol.response.ThemeInfoResp;
 import com.zwn.launcher.data.protocol.response.UpgradeResp;
 
 import java.io.File;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
@@ -42,21 +42,20 @@ public class MainViewModel extends BaseViewModel {
     public MutableLiveData<String> mldToastMsg = new MutableLiveData<>();
     public MutableLiveData<LoadState> mldHostAppUpgradeState = new MutableLiveData<>();
     public MutableLiveData<LoadState> mldManagerAppUpgradeState = new MutableLiveData<>();
-    public MutableLiveData<LoadState> mldSettingsAppUpgradeState = new MutableLiveData<>();
+    public MutableLiveData<UpgradeLoadState> mldCommonAppUpgradeState = new MutableLiveData<>();
     public MutableLiveData<DataLoadState<String>> mldThemeInfoLoadState = new MutableLiveData<>();
     public MutableLiveData<LoadState> mldHostPluginPublishState = new MutableLiveData<>();
     public UpgradeResp hostAppUpgradeResp;
     public UpgradeResp managerAppUpgradeResp;
-    public UpgradeResp settingsAppUpgradeResp;
     public PublishResp hostPluginPublishResp;
 
     public MainViewModel(DataRepository dataRepository) {
         this.dataRepository = dataRepository;
     }
 
-    public void reqSettingsAppUpgrade(String version) {
-        mldSettingsAppUpgradeState.setValue(LoadState.Loading);
-        UpgradeReq upgradeReq = new UpgradeReq(version, BaseConstants.SETTINGS_APP_SOFTWARE_CODE);
+    public void reqCommonAppUpgrade(String version, final String softwareCode) {
+        mldCommonAppUpgradeState.setValue(new UpgradeLoadState(LoadState.Loading, softwareCode));
+        UpgradeReq upgradeReq = new UpgradeReq(version, softwareCode);
         dataRepository.getUpgradeVersionInfo(upgradeReq)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
@@ -65,22 +64,22 @@ public class MainViewModel extends BaseViewModel {
                     @Override
                     public void onNext(@NonNull BaseResp<UpgradeResp> response) {
                         if(BaseConstants.API_HANDLE_SUCCESS == response.code) {
-                            settingsAppUpgradeResp = response.data;
-                            if (settingsAppUpgradeResp != null) {
-                                if (settingsAppUpgradeResp.getVersionId() == null || settingsAppUpgradeResp.getVersionId().isEmpty()) {
-                                    settingsAppUpgradeResp = null;
+                            UpgradeResp commonAppUpgradeResp = response.data;
+                            if (commonAppUpgradeResp != null) {
+                                if (commonAppUpgradeResp.getVersionId() == null || commonAppUpgradeResp.getVersionId().isEmpty()) {
+                                    commonAppUpgradeResp = null;
                                 }
                             }
-                            mldSettingsAppUpgradeState.setValue(LoadState.Success);
+                            mldCommonAppUpgradeState.setValue(new UpgradeLoadState(LoadState.Success, softwareCode, commonAppUpgradeResp));
                         }else{
                             mldToastMsg.setValue(response.message);
-                            mldSettingsAppUpgradeState.setValue(LoadState.Failed);
+                            mldCommonAppUpgradeState.setValue(new UpgradeLoadState(LoadState.Failed, softwareCode));
                         }
                     }
 
                     @Override
                     public void onError(@NonNull Throwable e) {
-                        mldSettingsAppUpgradeState.setValue(LoadState.Failed);
+                        mldCommonAppUpgradeState.setValue(new UpgradeLoadState(LoadState.Failed, softwareCode));
                     }
 
                     @Override
@@ -172,10 +171,9 @@ public class MainViewModel extends BaseViewModel {
                     @Override
                     public void onNext(@NonNull BaseResp<ThemeInfoResp> response) {
                         if(BaseConstants.API_HANDLE_SUCCESS == response.code){
-                            if(response.data != null && response.data.colorTemplateJson != null
-                                    && response.data.colorTemplateJson.packageSoftwareCode != null
-                                    && !response.data.colorTemplateJson.packageSoftwareCode.isEmpty()) {
-                                mldThemeInfoLoadState.setValue(new DataLoadState<>(LoadState.Success, response.data.colorTemplateJson.packageSoftwareCode));
+                            if(response.data != null && response.data.softwareCode != null
+                                    && !response.data.softwareCode.isEmpty()) {
+                                mldThemeInfoLoadState.setValue(new DataLoadState<>(LoadState.Success, response.data.softwareCode));
                             }else{
                                 mldToastMsg.setValue("主题包配置错误！");
                                 mldThemeInfoLoadState.setValue(new DataLoadState<>(LoadState.Failed));
@@ -237,6 +235,27 @@ public class MainViewModel extends BaseViewModel {
                 });
     }
 
+    public void reqUploadLog(String message, String packageName) {
+        String time = DateTimeUtils.formatDateToString(new Date(), LogFileConfig.LOG_TIME_FORMAT);
+        UploadLogReq uploadLogReq = new UploadLogReq(packageName, time, message, packageName);
+        dataRepository.uploadLog(uploadLogReq)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .doOnSubscribe(this)
+                .subscribe(new ResourceObserver<BaseResp<String>>() {
+                    @Override
+                    public void onNext(@NonNull BaseResp<String> resp) {}
+
+                    @Override
+                    public void onError(@NonNull Throwable e) {}
+
+                    @Override
+                    public void onComplete() {
+
+                    }
+                });
+    }
+
     private void uploadLog(String time, String message) {
         UploadLogReq uploadLogReq = new UploadLogReq(message, time);
         dataRepository.uploadLog(uploadLogReq)
@@ -282,8 +301,8 @@ public class MainViewModel extends BaseViewModel {
         if (logFileName == null || logFileName.isEmpty() || logFileName.equals("null")) {
             return;
         }
-        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-        String time = dateFormat.format(new Date());
+
+        String time = DateTimeUtils.formatDateToString(new Date(), LogFileConfig.LOG_TIME_FORMAT);
         String logPath = LogFileConfig.directoryPath + logFileName;
         String logMessage = FileUtils.readFile(logPath);
         if (logMessage != null) {

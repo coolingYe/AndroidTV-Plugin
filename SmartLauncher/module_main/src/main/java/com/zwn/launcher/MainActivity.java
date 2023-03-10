@@ -22,6 +22,8 @@ import android.provider.Settings;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
 
 import androidx.annotation.NonNull;
@@ -31,6 +33,8 @@ import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 
 
+import com.bumptech.glide.Glide;
+import com.google.android.material.card.MaterialCardView;
 import com.qihoo360.replugin.RePlugin;
 import com.zee.guide.ui.GuideActivity;
 import com.zee.launcher.login.ui.LoginActivity;
@@ -41,8 +45,8 @@ import com.zeewain.base.model.LoadState;
 import com.zeewain.base.ui.BaseActivity;
 import com.zeewain.base.utils.ApkUtil;
 import com.zeewain.base.utils.CommonUtils;
-import com.zeewain.base.utils.CommonVariableCacheUtils;
 import com.zeewain.base.utils.DensityUtils;
+import com.zeewain.base.utils.DisplayUtil;
 import com.zeewain.base.utils.FileUtils;
 import com.zeewain.base.utils.NetworkUtil;
 import com.zeewain.base.utils.SPUtils;
@@ -83,11 +87,15 @@ public class MainActivity extends BaseActivity{
     private MainViewModel mainViewModel;
     private LoadingView loadingViewMain;
     private NetworkErrView networkErrViewMain;
+    private LinearLayout layoutMainDeviceOperate;
+    private MaterialCardView cardDeviceReboot;
+    private MaterialCardView cardDeviceShutdown;
+    private TextView tvMainTip;
     private String hostPluginFileId;
     private String hostMainPlugin;
     private String hostMainPluginClassPath;
-    private final ExecutorService mFixedPool = Executors.newFixedThreadPool(2);
-
+    private final ExecutorService mThreadPool = Executors.newCachedThreadPool();
+    private boolean isLastGestureAIActive = false;
     private long lastProgressTime = 0;
     private final DownloadListener downloadListener = new DownloadListener() {
         @Override
@@ -145,7 +153,7 @@ public class MainActivity extends BaseActivity{
     };
 
     private void installPlugin(final String fileId, final String filePath){
-        mFixedPool.execute(() -> {
+        mThreadPool.execute(() -> {
             long currentTime = System.currentTimeMillis();
             PluginInfo info = RePlugin.install(filePath);
             Log.d(TAG, "installPlugin() cost= " + (System.currentTimeMillis() - currentTime) + ", filePath=" + filePath);
@@ -156,12 +164,22 @@ public class MainActivity extends BaseActivity{
                         if(loadingViewMain != null && loadingViewMain.getVisibility() == View.VISIBLE) {
                             loadingViewMain.setText("加载中");
                         }
+
+                        startMainPluginActivity();
                     }
                 });
-                startMainPluginActivity();
                 Log.d(TAG, "installPlugin() 2 cost= " + (System.currentTimeMillis() - currentTime));
             }else{//安装插件失败 need retry?
                 Log.e(TAG, "installPlugin() failed! fileId=" + fileId + ", filePath=" + filePath);
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        loadingViewMain.setVisibility(View.GONE);
+                        layoutMainDeviceOperate.setVisibility(View.VISIBLE);
+                        tvMainTip.setText("主题更新失败！请重启设备！");
+                        cardDeviceReboot.requestFocus();
+                    }
+                });
             }
         });
     }
@@ -190,6 +208,13 @@ public class MainActivity extends BaseActivity{
         setContentView(R.layout.activity_main);
         Log.i(TAG, "new version: " + ApkUtil.getAppVersionName(this));
 
+        mThreadPool.execute(new Runnable() {
+            @Override
+            public void run() {
+                ZeeServiceManager.checkPluginAppRelay(MainActivity.this);
+            }
+        });
+
         checkApkInstallResult();
         ZeeServiceManager.getInstance().bindDownloadService(this);
         //ZeeServiceManager.getInstance().bindManagerService(this);
@@ -211,12 +236,18 @@ public class MainActivity extends BaseActivity{
         checkHostApkStats();
 
         CommonUtils.savePluginCareInfo();
-        /*File file = new File("/sdcard/app-release-unsigned.apk");
-        if(file.exists()){
-            loadingViewMain.setVisibility(View.VISIBLE);
-            loadingViewMain.startAnim();
-            loadingViewMain.requestFocus();
 
+        loadingViewMain.setVisibility(View.VISIBLE);
+        loadingViewMain.startAnim();
+        loadingViewMain.requestFocus();
+        if (NetworkUtil.isNetworkAvailable(this)) {
+            loadingViewMain.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    reqAppUpgrade();
+                }
+            }, 1000);
+        } else {
             loadingViewMain.setTag(true);
             loadingViewMain.postDelayed(new Runnable() {
                 @Override
@@ -224,35 +255,13 @@ public class MainActivity extends BaseActivity{
                     checkShouldInitData();
                 }
             }, 5000);
-
-            hostPluginFileId = "ZWN_SW_ANDROID_TOPIC_001";
-            hostMainPlugin = "PLUGIN_TOPIC_001";
-            hostMainPluginClassPath = "com.zee.launcher.home";
-            installPlugin(hostPluginFileId,file.getAbsolutePath());
-        }else*/ {
-            loadingViewMain.setVisibility(View.VISIBLE);
-            loadingViewMain.startAnim();
-            loadingViewMain.requestFocus();
-            if (NetworkUtil.isNetworkAvailable(this)) {
-                loadingViewMain.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        mainViewModel.reqManagerAppUpgrade(ApkUtil.getAppVersionName(getApplicationContext(), BaseConstants.MANAGER_PACKAGE_NAME));
-                        mainViewModel.reqSettingsAppUpgrade(ApkUtil.getAppVersionName(getApplicationContext(), BaseConstants.SETTINGS_APP_PACKAGE_NAME));
-                    }
-                }, 1000);
-            } else {
-                loadingViewMain.setTag(true);
-                loadingViewMain.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        checkShouldInitData();
-                    }
-                }, 5000);
-            }
         }
+    }
 
-        setLauncherWallpaper();
+    private void reqAppUpgrade(){
+        mainViewModel.reqManagerAppUpgrade(ApkUtil.getAppVersionName(this, BaseConstants.MANAGER_PACKAGE_NAME));
+        mainViewModel.reqCommonAppUpgrade(ApkUtil.getAppVersionName(this, BaseConstants.SETTINGS_APP_PACKAGE_NAME), BaseConstants.SETTINGS_APP_SOFTWARE_CODE);
+        mainViewModel.reqCommonAppUpgrade(ApkUtil.getAppVersionName(this, BaseConstants.ZEE_GESTURE_AI_APP_PACKAGE_NAME), BaseConstants.ZEE_GESTURE_AI_APP_SOFTWARE_CODE);
     }
 
     private synchronized void checkShouldInitData(){
@@ -260,8 +269,7 @@ public class MainActivity extends BaseActivity{
             boolean needLoadData = (Boolean)loadingViewMain.getTag();
             loadingViewMain.setTag(false);
             if(needLoadData){
-                mainViewModel.reqManagerAppUpgrade(ApkUtil.getAppVersionName(this, BaseConstants.MANAGER_PACKAGE_NAME));
-                mainViewModel.reqSettingsAppUpgrade(ApkUtil.getAppVersionName(this, BaseConstants.SETTINGS_APP_PACKAGE_NAME));
+                reqAppUpgrade();
             }
         }
     }
@@ -366,9 +374,77 @@ public class MainActivity extends BaseActivity{
     private void initView(){
         loadingViewMain = findViewById(R.id.loadingView_main);
         networkErrViewMain = findViewById(R.id.networkErrView_main);
+        layoutMainDeviceOperate = findViewById(R.id.ll_main_device_operate);
+        cardDeviceReboot = findViewById(R.id.card_device_reboot);
+        cardDeviceShutdown = findViewById(R.id.card_device_shutdown);
+        tvMainTip = findViewById(R.id.tv_main_tip);
     }
 
     private void initListener() {
+        cardDeviceReboot.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(hostPluginFileId != null && hostMainPlugin != null) {
+                    CareController.instance.deleteDownloadInfo(hostPluginFileId);
+                    RePlugin.uninstall(hostMainPlugin);
+                }
+                SPUtils.getInstance().put(SharePrefer.StartPluginFailedTimes, 0);
+                Intent intent = new Intent(Intent.ACTION_REBOOT);
+                intent.putExtra("nowait", 1);
+                intent.putExtra("interval", 1);
+                intent.putExtra("window", 0);
+                sendBroadcast(intent);
+            }
+        });
+
+        cardDeviceReboot.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View v, boolean hasFocus) {
+                if (hasFocus) {
+                    cardDeviceReboot.setStrokeColor(0xFFFFFFFF);
+                    final int strokeWidth = DisplayUtil.dip2px(v.getContext(), 1);
+                    cardDeviceReboot.setStrokeWidth(strokeWidth);
+                    CommonUtils.scaleView(v, 1.1f);
+                } else {
+                    cardDeviceReboot.setStrokeColor(0x00FFFFFF);
+                    cardDeviceReboot.setStrokeWidth(0);
+                    v.clearAnimation();
+                    CommonUtils.scaleView(v, 1f);
+                }
+            }
+        });
+
+        cardDeviceShutdown.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(hostPluginFileId != null && hostMainPlugin != null) {
+                    CareController.instance.deleteDownloadInfo(hostPluginFileId);
+                    RePlugin.uninstall(hostMainPlugin);
+                }
+                SPUtils.getInstance().put(SharePrefer.StartPluginFailedTimes, 0);
+                Intent intent = new Intent("com.android.internal.intent.action.REQUEST_SHUTDOWN");
+                intent.putExtra("android.intent.extra.KEY_CONFIRM", false);//其中false换成true,会弹出是否关机的确认窗口
+                startActivity(intent);
+            }
+        });
+
+        cardDeviceShutdown.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View v, boolean hasFocus) {
+                if (hasFocus) {
+                    cardDeviceShutdown.setStrokeColor(0xFFFFFFFF);
+                    final int strokeWidth = DisplayUtil.dip2px(v.getContext(), 1);
+                    cardDeviceShutdown.setStrokeWidth(strokeWidth);
+                    CommonUtils.scaleView(v, 1.1f);
+                } else {
+                    cardDeviceShutdown.setStrokeColor(0x00FFFFFF);
+                    cardDeviceShutdown.setStrokeWidth(0);
+                    v.clearAnimation();
+                    CommonUtils.scaleView(v, 1f);
+                }
+            }
+        });
+
         networkErrViewMain.setRetryClickListener(() -> {
             if(LoadState.Failed == mainViewModel.mldManagerAppUpgradeState.getValue()){
                 mainViewModel.reqManagerAppUpgrade(ApkUtil.getAppVersionName(this, BaseConstants.MANAGER_PACKAGE_NAME));
@@ -393,11 +469,11 @@ public class MainActivity extends BaseActivity{
 
     @SuppressLint("NotifyDataSetChanged")
     private void initViewObservable() {
-        mainViewModel.mldSettingsAppUpgradeState.observe(this, loadState -> {
-            if (LoadState.Success == loadState) {
-                if(mainViewModel.settingsAppUpgradeResp != null){
+        mainViewModel.mldCommonAppUpgradeState.observe(this, upgradeLoadState -> {
+            if (LoadState.Success == upgradeLoadState.loadState) {
+                if(upgradeLoadState.upgradeResp != null){
                     if(ZeeServiceManager.getInstance().getDownloadBinder() != null) {
-                        ZeeServiceManager.getInstance().handleSettingsAppUpgrade(mainViewModel.settingsAppUpgradeResp);
+                        ZeeServiceManager.getInstance().handleCommonAppUpgrade(upgradeLoadState.upgradeResp, upgradeLoadState.softwareCode);
                     }
                 }
             }
@@ -415,6 +491,7 @@ public class MainActivity extends BaseActivity{
                 loadingViewMain.stopAnim();
                 loadingViewMain.setVisibility(View.GONE);
                 networkErrViewMain.setVisibility(View.VISIBLE);
+                networkErrViewMain.requestFocus();
             }else{
                 if(loadingViewMain.getVisibility() != View.VISIBLE) {
                     loadingViewMain.setVisibility(View.VISIBLE);
@@ -436,6 +513,7 @@ public class MainActivity extends BaseActivity{
                 loadingViewMain.stopAnim();
                 loadingViewMain.setVisibility(View.GONE);
                 networkErrViewMain.setVisibility(View.VISIBLE);
+                networkErrViewMain.requestFocus();
             }else{
                 if(loadingViewMain.getVisibility() != View.VISIBLE) {
                     loadingViewMain.setVisibility(View.VISIBLE);
@@ -454,6 +532,7 @@ public class MainActivity extends BaseActivity{
                     loadingViewMain.stopAnim();
                     loadingViewMain.setVisibility(View.GONE);
                     networkErrViewMain.setVisibility(View.VISIBLE);
+                    networkErrViewMain.requestFocus();
                 }else{
                     if(loadingViewMain.getVisibility() != View.VISIBLE) {
                         loadingViewMain.setVisibility(View.VISIBLE);
@@ -474,6 +553,7 @@ public class MainActivity extends BaseActivity{
                     loadingViewMain.stopAnim();
                     loadingViewMain.setVisibility(View.GONE);
                     networkErrViewMain.setVisibility(View.VISIBLE);
+                    networkErrViewMain.requestFocus();
                 }else{
                     if(loadingViewMain.getVisibility() != View.VISIBLE) {
                         loadingViewMain.setVisibility(View.VISIBLE);
@@ -497,6 +577,7 @@ public class MainActivity extends BaseActivity{
             loadingViewMain.stopAnim();
             loadingViewMain.setVisibility(View.GONE);
             networkErrViewMain.setVisibility(View.VISIBLE);
+            networkErrViewMain.requestFocus();
         }
     }
 
@@ -523,14 +604,18 @@ public class MainActivity extends BaseActivity{
                 }else if(dbDownloadInfo.status == DownloadInfo.STATUS_SUCCESS){
                     if(RePlugin.isPluginInstalled(hostMainPlugin)){
                         startMainPluginActivity();
-                        //todo restart if failed
+                        return;
                     }else{//未安装，文件存在，则进行安装
                         File file = new File(dbDownloadInfo.filePath);
-                        if(file.exists()){
+                        if(file.exists() && dbDownloadInfo.packageMd5.equals(FileUtils.file2MD5(file))){
                             installPlugin(dbDownloadInfo.fileId, file.getAbsolutePath());
+                            return;
+                        }else{
+                            file.delete();
+                            CareController.instance.deleteDownloadInfo(dbDownloadInfo.fileId);
+                            startDownloadResult = ZeeServiceManager.getInstance().getDownloadBinder().startDownload(DownloadHelper.buildHostPluginDownloadInfo(this, publishResp));
                         }
                     }
-                    return;
                 }else{
                     startDownloadResult = true;
                 }
@@ -551,17 +636,61 @@ public class MainActivity extends BaseActivity{
         Log.i(TAG, "startMainPluginActivity " + RePlugin.getPluginInfo(hostMainPlugin));
         boolean startResult = RePlugin.startActivity(this, RePlugin.createIntent(hostMainPlugin, hostMainPluginClassPath));
         if(!startResult){
+            int failedTimes = SPUtils.getInstance().getInt(SharePrefer.StartPluginFailedTimes, 0);
             Log.e(TAG, "startMainPluginActivity failed!");
             showToast("配置主题失败！");
+            failedTimes = failedTimes + 1;
+            SPUtils.getInstance().put(SharePrefer.StartPluginFailedTimes, failedTimes);
+            if(failedTimes == 1){
+                layoutMainDeviceOperate.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        rebootMainProcess(getApplicationContext());
+                    }
+                }, 500);
+            }else if(failedTimes == 2 || failedTimes == 3){
+                CareController.instance.deleteDownloadInfo(hostPluginFileId);
+                RePlugin.uninstall(hostMainPlugin);
+                clearGlideCache();
+                layoutMainDeviceOperate.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        rebootMainProcess(getApplicationContext());
+                    }
+                }, 1000);
+            }else{
+                loadingViewMain.setVisibility(View.GONE);
+                layoutMainDeviceOperate.setVisibility(View.VISIBLE);
+                tvMainTip.setText("配置主题失败！请重启设备！");
+                cardDeviceReboot.requestFocus();
+                //todo only to clear all data?
+            }
+        }else{
+            SPUtils.getInstance().put(SharePrefer.StartPluginFailedTimes, 0);
         }
+    }
+
+    private void clearGlideCache(){
+        mThreadPool.execute(new Runnable() {
+            @Override
+            public void run() {
+                Glide.get(getApplication()).clearDiskCache();
+            }
+        });
+    }
+
+    private void rebootMainProcess(final Context context){
+        Intent intent = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        context.startActivity(intent);
+        android.os.Process.killProcess(android.os.Process.myPid());
+        System.exit(0);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         Log.e(TAG, "onResume");
-        CommonVariableCacheUtils.getInstance().initOptions(getResources());
-        CommonVariableCacheUtils.getInstance().initDrawable(getResources());
         mainViewModel.checkCrashLog();
 
         if(!NetworkUtil.isNetworkAvailable(this) && mainViewModel.hostAppUpgradeResp != null
@@ -575,6 +704,8 @@ public class MainActivity extends BaseActivity{
         }else{
             Log.e(TAG, "onResume todo what?");
         }
+
+        bindAiServiceAndCheckStart();
     }
 
     @Override
@@ -592,12 +723,27 @@ public class MainActivity extends BaseActivity{
 
     @Override
     protected void onDestroy() {
+        Log.i(TAG, "onDestroy()");
+        ZeeServiceManager.getInstance().unRegisterDownloadListener(downloadListener);
         unRegisterBroadCast();
+        ZeeServiceManager.getInstance().release(this);
         super.onDestroy();
     }
 
+    private void bindAiServiceAndCheckStart(){
+        ZeeServiceManager.getInstance().bindGestureAiService(this);
+        networkErrViewMain.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if(ZeeServiceManager.isSettingGestureAIEnable()){
+                    ZeeServiceManager.getInstance().startGestureAi(false);
+                }
+            }
+        }, 1000);
+    }
+
     public void onNetChange() {
-        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        ConnectivityManager cm = (ConnectivityManager) getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
         if (null != activeNetwork && activeNetwork.isConnected()) {
             if(null == mainViewModel.mldManagerAppUpgradeState.getValue()) {
@@ -625,6 +771,10 @@ public class MainActivity extends BaseActivity{
     private void registerBroadCast() {
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
+        intentFilter.addAction(BaseConstants.GESTURE_AI_SERVICE_CHECK_ACTION);
+        intentFilter.addAction(BaseConstants.ACTION_CRASH_MSG);
+        intentFilter.addAction(Intent.ACTION_SCREEN_ON);
+        intentFilter.addAction(Intent.ACTION_SCREEN_OFF);
         careBroadcastReceiver = new CareBroadcastReceiver();
         registerReceiver(careBroadcastReceiver, intentFilter);
     }
@@ -641,6 +791,28 @@ public class MainActivity extends BaseActivity{
         public void onReceive(Context context, Intent intent) {
             if(ConnectivityManager.CONNECTIVITY_ACTION.equals(intent.getAction())){
                 onNetChange();
+            }else if(BaseConstants.GESTURE_AI_SERVICE_CHECK_ACTION.equals(intent.getAction())){
+                bindAiServiceAndCheckStart();
+            }else if(BaseConstants.ACTION_CRASH_MSG.equals(intent.getAction())){
+                String crashMsg = intent.getStringExtra(BaseConstants.EXTRA_CRASH_MSG);
+                String pkg = intent.getStringExtra(BaseConstants.EXTRA_CRASH_PKG);
+                Log.i(TAG, "crashMsg: " + crashMsg);
+                Log.i(TAG, "pkg: " + pkg);
+                if(crashMsg != null){
+                    mainViewModel.reqUploadLog(crashMsg, pkg);
+                }
+            }else if(Intent.ACTION_SCREEN_ON.equals(intent.getAction())){
+                Log.i(TAG, "ACTION_SCREEN_ON" );
+                if(ZeeServiceManager.isSettingGestureAIEnable()){
+                    ZeeServiceManager.getInstance().startGestureAi(isLastGestureAIActive);
+                }
+            }else if(Intent.ACTION_SCREEN_OFF.equals(intent.getAction())){
+                Log.i(TAG, "ACTION_SCREEN_OFF" );
+                if(ZeeServiceManager.isSettingGestureAIEnable()){
+                    isLastGestureAIActive = ZeeServiceManager.getInstance().isGestureAIActive();
+                    ZeeServiceManager.getInstance().stopGestureAi();
+                }
+
             }
         }
     }

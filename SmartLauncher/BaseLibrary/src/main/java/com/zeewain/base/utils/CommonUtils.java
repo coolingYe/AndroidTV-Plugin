@@ -4,21 +4,22 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.view.View;
-
 import androidx.core.view.ViewCompat;
-
 import com.zeewain.base.BaseApplication;
 import com.zeewain.base.config.BaseConstants;
 import com.zeewain.base.config.SharePrefer;
 
 import java.io.File;
+import java.io.IOException;
 
 public class CommonUtils {
 
     public static String getFileUsePath(String fileId, String version, int type, Context context){
         if(type == BaseConstants.DownloadFileType.HOST_APP){
             return BaseConstants.PRIVATE_DATA_PATH + "/" + fileId + "_" + version + ".apk";
-        }else if(type == BaseConstants.DownloadFileType.MANAGER_APP || type == BaseConstants.DownloadFileType.SETTINGS_APP){
+        }else if(type == BaseConstants.DownloadFileType.MANAGER_APP
+                || type == BaseConstants.DownloadFileType.SETTINGS_APP
+                || type == BaseConstants.DownloadFileType.ZEE_GESTURE_AI_APP){
             return BaseConstants.PRIVATE_DATA_PATH + "/" + fileId + "_" + version + ".apk";
         }else if(type == BaseConstants.DownloadFileType.PLUGIN_APP){
             return context.getExternalCacheDir().getPath() + "/" + fileId + "_" + version + ".apk";
@@ -46,9 +47,11 @@ public class CommonUtils {
             return file.mkdirs();
         }else {
             File[] files = file.listFiles();
-            for(File tmpFile : files){
-                if (tmpFile.isFile()){
-                    tmpFile.delete();
+            if(files != null){
+                for(File tmpFile : files){
+                    if (tmpFile.isFile()){
+                        tmpFile.delete();
+                    }
                 }
             }
         }
@@ -87,8 +90,13 @@ public class CommonUtils {
 
     public static String getDeviceSn(){
         //return "1111020123010001";
+        return "rockchip2018101500C6sn";
         //return "HD13213213223213213";
-        return SystemProperties.get("ro.serialno");
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+//            return Build.getSerial();
+//        } else {
+//            return SystemProperties.get("ro.serialno");
+//        }
     }
 
     public static String getHardwarePlatformInfo(){
@@ -110,4 +118,18 @@ public class CommonUtils {
         }
     }
 
+    public static Process clearAppUserData(String packageName) {
+        Process p = execRuntimeProcess("pm clear " + packageName);
+        return p;
+    }
+
+    public static Process execRuntimeProcess(String commond) {
+        Process p = null;
+        try {
+            p = Runtime.getRuntime().exec(commond);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return p;
+    }
 }

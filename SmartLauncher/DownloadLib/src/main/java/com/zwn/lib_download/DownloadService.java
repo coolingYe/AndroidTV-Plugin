@@ -13,6 +13,7 @@ import android.util.Log;
 import com.zwn.lib_download.db.CareController;
 import com.zwn.lib_download.model.DownloadInfo;
 import com.zwn.lib_download.model.LoadedInfo;
+import com.zwn.lib_download.utils.FileHelper;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -106,7 +107,7 @@ public class DownloadService extends Service{
                 if(downloadInfoTmp == null) return false;
                 if(downloadInfoTmp.status == DownloadInfo.STATUS_STOPPED){
                     if(!downloadInfoTmp.version.equals(downloadInfo.version)){
-                        CareController.instance.updateDownloadInfoNewVersion(downloadInfo.fileId, DownloadInfo.STATUS_PENDING, downloadInfo.filePath, downloadInfo.version, downloadInfo.url, downloadInfo.relyIds);
+                        CareController.instance.updateDownloadInfoNewVersion(downloadInfo, DownloadInfo.STATUS_PENDING);
                         File file = new File(downloadInfoTmp.filePath);
                         if(file.exists()){
                             file.delete();
@@ -118,7 +119,7 @@ public class DownloadService extends Service{
                     }
                 }else if(downloadInfoTmp.status == DownloadInfo.STATUS_SUCCESS){
                     if(!downloadInfoTmp.version.equals(downloadInfo.version)){
-                        CareController.instance.updateDownloadInfoNewVersion(downloadInfo.fileId, DownloadInfo.STATUS_PENDING, downloadInfo.filePath, downloadInfo.version, downloadInfo.url, downloadInfo.relyIds);
+                        CareController.instance.updateDownloadInfoNewVersion(downloadInfo, DownloadInfo.STATUS_PENDING);
                         File file = new File(downloadInfoTmp.filePath);
                         if(file.exists()){
                             file.delete();
@@ -202,10 +203,27 @@ public class DownloadService extends Service{
         public void onSuccess(String fileId, int type, File file) {
             Log.i(TAG, "onSuccess() fileId=" + fileId);
             downloadingMap.remove(fileId);
-            CareController.instance.updateDownloadInfoStatus(fileId, DownloadInfo.STATUS_SUCCESS);
-
-            for(int i=0; i<downloadListenerList.size(); i++){
-                downloadListenerList.get(i).onSuccess(fileId, type, file);
+            String downloadFileMd5 = CareController.instance.getDownloadFileMd5(fileId);
+            if(downloadFileMd5 != null && !downloadFileMd5.isEmpty()){//the file has md5 value;
+                String fileMD5 = FileHelper.file2MD5(file);
+                if(!downloadFileMd5.equals(fileMD5)){
+                    Log.e(TAG, "onSuccess() fileId=" + fileId + ", file=" + file.getAbsolutePath() + ", md5 check failed!<<<---");
+                    if(file.delete()){
+                        CareController.instance.updateDownloadInfoStatus(fileId, DownloadInfo.STATUS_PENDING);
+                    }else{
+                        CareController.instance.updateDownloadInfoStatus(fileId, DownloadInfo.STATUS_STOPPED);
+                    }
+                }else{
+                    CareController.instance.updateDownloadInfoStatus(fileId, DownloadInfo.STATUS_SUCCESS);
+                    for(int i=0; i<downloadListenerList.size(); i++){
+                        downloadListenerList.get(i).onSuccess(fileId, type, file);
+                    }
+                }
+            }else{
+                CareController.instance.updateDownloadInfoStatus(fileId, DownloadInfo.STATUS_SUCCESS);
+                for(int i=0; i<downloadListenerList.size(); i++){
+                    downloadListenerList.get(i).onSuccess(fileId, type, file);
+                }
             }
 
             nextToDo();

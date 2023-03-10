@@ -15,6 +15,7 @@ import com.zeewain.base.config.BaseConstants;
 import com.zeewain.base.ui.BaseActivity;
 import com.zeewain.base.utils.CommonUtils;
 import com.zeewain.base.utils.DensityUtils;
+import com.zeewain.base.utils.FileUtils;
 import com.zeewain.base.widgets.GradientProgressView;
 import com.zwn.launcher.R;
 import com.zwn.launcher.data.protocol.response.UpgradeResp;
@@ -159,8 +160,17 @@ public class UpgradeDialogActivity extends BaseActivity {
                 if(downloadInfo.status == DownloadInfo.STATUS_SUCCESS){
                     File file = new File(downloadInfo.filePath);
                     if (file.exists()){
-                        ZeeServiceManager.getInstance().handleHostInstall(downloadInfo.filePath, downloadInfo.fileId);
-                        finish();
+                        if(downloadInfo.packageMd5.equals(FileUtils.file2MD5(file))) {
+                            ZeeServiceManager.getInstance().handleHostInstall(downloadInfo.filePath, downloadInfo.fileId);
+                            finish();
+                        }else{
+                            if(file.delete() && CareController.instance.deleteDownloadInfo(downloadInfo.fileId) > 0){
+                                downloadBinder.startDownload(DownloadHelper.buildHostUpgradeDownloadInfo(this, upgradeResp));
+                            }else{
+                                showToast("删除损坏的升级包失败！");
+                                finish();
+                            }
+                        }
                     }else{//something wrong?
                         downloadBinder.startDownload(downloadInfo);
                     }

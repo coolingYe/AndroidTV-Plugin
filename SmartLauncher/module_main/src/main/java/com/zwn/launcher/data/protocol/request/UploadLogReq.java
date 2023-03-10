@@ -48,7 +48,7 @@ public class UploadLogReq {
     /**
      * |projectCode|项目代码|true|string|
      */
-    public String projectCode = BaseConstants.AUTH_SYSTEM_CODE;
+    public String projectCode = BaseConstants.HOST_APP_SOFTWARE_CODE;
     /**
      * |projectVersion|项目版本|false|string|
      */

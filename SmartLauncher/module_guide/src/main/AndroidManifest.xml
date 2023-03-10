@@ -15,6 +15,7 @@
     <application>
         <activity
             android:name=".ui.GuideActivity"
+            android:launchMode="singleTask"
             android:exported="true" />
     </application>
 

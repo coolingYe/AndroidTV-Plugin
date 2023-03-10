@@ -153,7 +153,7 @@ public class TopBarView extends ConstraintLayout {
     }
 
     private void updateWifiInfo(){
-        ConnectivityManager connectivityManager = (ConnectivityManager) getContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+        ConnectivityManager connectivityManager = (ConnectivityManager) getContext().getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo networkInfo = connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
         if (networkInfo != null && networkInfo.isConnected()) {
             imgWifi.setImageResource(R.mipmap.top_bar_wifi);

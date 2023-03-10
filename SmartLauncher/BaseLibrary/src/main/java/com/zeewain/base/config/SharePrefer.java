@@ -11,4 +11,5 @@ public class SharePrefer {
     public static String SetWallpaperDone = "SetWallpaperDone";
     public static String GuideDone = "GuideDone";
     public static String DeviceSN = "DeviceSN";
+    public static String StartPluginFailedTimes = "StartPluginFailedTimes";
 }

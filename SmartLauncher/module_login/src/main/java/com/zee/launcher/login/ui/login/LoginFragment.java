@@ -84,7 +84,7 @@ public class LoginFragment extends Fragment implements View.OnClickListener, Vie
         animation.setInterpolator(interpolator);
 
         if(BuildConfig.DEBUG){
-            editLoginAccount.setText("zwy_test_001");
+            editLoginAccount.setText("aibox_rk_001");
             editLoginPassword.setText("123456Aa");
         }
 

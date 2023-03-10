@@ -1,6 +1,9 @@
 package com.zee.launcher.login.ui.login;
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -32,6 +35,8 @@ import com.zeewain.base.model.LoadState;
 import com.zeewain.base.utils.CommonUtils;
 import com.zeewain.base.utils.DisplayUtil;
 import com.zeewain.base.utils.ImageUtil;
+
+import java.util.List;
 
 
 public class RegisterFragment extends Fragment implements View.OnFocusChangeListener {
@@ -211,24 +216,38 @@ public class RegisterFragment extends Fragment implements View.OnFocusChangeList
         txtAgreementPrivacy.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent = new Intent();
-                intent.setAction(BaseConstants.ZEE_SETTINGS_AGREEMENT_ACTIVITY_ACTION);
-                intent.putExtra(BaseConstants.EXTRA_ZEE_SETTINGS_AGREEMENT_CODE, BaseConstants.AgreementCode.CODE_PRIVACY_AGREEMENT);
-                startActivity(intent);
+                if(isIntentExisting(v.getContext(), BaseConstants.ZEE_SETTINGS_AGREEMENT_ACTIVITY_ACTION)) {
+                    Intent intent = new Intent();
+                    intent.setAction(BaseConstants.ZEE_SETTINGS_AGREEMENT_ACTIVITY_ACTION);
+                    intent.putExtra(BaseConstants.EXTRA_ZEE_SETTINGS_AGREEMENT_CODE, BaseConstants.AgreementCode.CODE_PRIVACY_AGREEMENT);
+                    startActivity(intent);
+                }
             }
         });
 
         txtAgreementOnlineService.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent = new Intent();
-                intent.setAction(BaseConstants.ZEE_SETTINGS_AGREEMENT_ACTIVITY_ACTION);
-                intent.putExtra(BaseConstants.EXTRA_ZEE_SETTINGS_AGREEMENT_CODE, BaseConstants.AgreementCode.CODE_USER_AGREEMENT);
-                startActivity(intent);
+                if(isIntentExisting(v.getContext(), BaseConstants.ZEE_SETTINGS_AGREEMENT_ACTIVITY_ACTION)) {
+                    Intent intent = new Intent();
+                    intent.setAction(BaseConstants.ZEE_SETTINGS_AGREEMENT_ACTIVITY_ACTION);
+                    intent.putExtra(BaseConstants.EXTRA_ZEE_SETTINGS_AGREEMENT_CODE, BaseConstants.AgreementCode.CODE_USER_AGREEMENT);
+                    startActivity(intent);
+                }
             }
         });
 
         //binding.txtRegisterPrev.setOnClickListener(v -> requireActivity().finish());
+    }
+
+    public boolean isIntentExisting(Context context, String action) {
+        final PackageManager packageManager = context.getPackageManager();
+        final Intent intent = new Intent(action);
+        List<ResolveInfo> resolveInfo = packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY);
+        if (resolveInfo.size() > 0) {
+            return true;
+        }
+        return false;
     }
 
     private void initViewObservable(){

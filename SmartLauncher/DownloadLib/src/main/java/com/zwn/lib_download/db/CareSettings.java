@@ -31,4 +31,20 @@ public class CareSettings {
                 URL, FILE_SIZE, LOADED_SIZE, FILE_PATH, VERSION, STATUS, TYPE, PACKAGE_MD5, RELY_IDS, EXTRA_ID, EXTRA_ONE, EXTRA_TWO, SAVE_TIME, DESC};
     }
 
+    public static final class AppLibInfo  {
+        public static final Uri CONTENT_URI = Uri.parse("content://" +
+                CareProvider.AUTHORITY + "/" + CareProvider.TABLE_APP_LIB_INFO );
+        public static final String _ID = "_id";
+        public static final String FILE_ID = "fileId";
+        public static final String PACKAGE_NAME = "packageName";
+        public static final String LIB_PATH = "libPath";
+        public static final String LIB_MD5 = "libMd5";
+        public static final String STATUS = "status";
+        public static final String SAVE_TIME = "saveTime";
+        public static final String DESC = "describe";
+
+        public static final String[] APP_LIB_INFO_QUERY_COLUMNS = { _ID, FILE_ID, PACKAGE_NAME, LIB_PATH, LIB_MD5,
+                STATUS, SAVE_TIME, DESC};
+    }
+
 }

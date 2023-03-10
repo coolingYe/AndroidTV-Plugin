@@ -39,7 +39,7 @@
     <androidx.appcompat.widget.AppCompatEditText
         android:id="@+id/edit_register_account"
         style="@style/GuideEditStyle"
-        android:maxLength="16"
+        android:maxLength="32"
         app:layout_constraintLeft_toLeftOf="@+id/txt_register_summary"
         app:layout_constraintTop_toBottomOf="@+id/txt_register_summary"
         android:layout_marginTop="18dp"

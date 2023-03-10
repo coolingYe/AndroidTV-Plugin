@@ -1,9 +1,8 @@
 package com.zwn.launcher.host;
 
-
-import android.content.Intent;
 import android.os.RemoteException;
 
+import com.zeewain.ai.ZeeAiManager;
 import com.zeewain.base.utils.CommonUtils;
 import com.zwn.launcher.service.ZeeServiceManager;
 
@@ -49,5 +48,25 @@ public class HostManager extends IHostManager.Stub {
     @Override
     public void gotoLoginPage() throws RemoteException {
 
+    }
+
+    @Override
+    public boolean isGestureAiEnable() throws RemoteException {
+        return ZeeServiceManager.isSettingGestureAIEnable();
+    }
+
+    @Override
+    public void startGestureAi(boolean withActive) throws RemoteException {
+        ZeeAiManager.getInstance().startGestureAI(withActive);
+    }
+
+    @Override
+    public void stopGestureAi() throws RemoteException {
+        ZeeAiManager.getInstance().stopGestureAI();
+    }
+
+    @Override
+    public boolean isGestureAIActive() throws RemoteException {
+        return ZeeAiManager.getInstance().isGestureAIActive();
     }
 }

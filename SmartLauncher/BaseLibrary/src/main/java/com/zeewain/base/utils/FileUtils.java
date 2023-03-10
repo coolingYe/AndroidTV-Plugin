@@ -113,6 +113,39 @@ public class FileUtils {
         return file.exists();
     }
 
+    public static boolean isNullContentFile(File file, int checkTotalByte) {
+        FileInputStream inputStream = null;
+        try {
+            inputStream = new FileInputStream(file);
+            byte[] bytes = new byte[1024];
+            int count;
+            int readTotalByte = 0;
+            while((count=inputStream.read(bytes))!=-1){
+                readTotalByte = readTotalByte + count;
+                for(int i=0; i<count; i++){
+                    if(bytes[i] != 0x00){
+                        return false;
+                    }
+                }
+
+                if(readTotalByte >= checkTotalByte){
+                    return true;
+                }
+            }
+
+        } catch (Exception ignored) {} finally {
+            if(inputStream != null) {
+                try {
+                    inputStream.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        return true;
+    }
+
     /**
      * 删除单个文件
      * @param   filePath    被删除文件的文件名

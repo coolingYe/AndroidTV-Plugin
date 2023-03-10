@@ -18,7 +18,6 @@ import com.zeewain.base.config.SharePrefer;
 import com.zeewain.base.data.protocol.response.BaseResp;
 import com.zeewain.base.model.LoadState;
 import com.zeewain.base.ui.BaseViewModel;
-import com.zeewain.base.utils.CommonVariableCacheUtils;
 
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.observers.DisposableObserver;
@@ -69,7 +68,6 @@ public class LoginViewModel extends BaseViewModel {
     private void saveLoginData(String token, String account) {
         mUserRepository.putValue(SharePrefer.userToken, token);
         mUserRepository.putValue(SharePrefer.userAccount, account);
-        CommonVariableCacheUtils.getInstance().token = token;
     }
 
     public void reqUserActivate(String userCode, String password, String deviceSn, String uuid, String code) {
@@ -160,7 +158,6 @@ public class LoginViewModel extends BaseViewModel {
                     public void onError(@NonNull Throwable e) {
                         mUserRepository.putValue(SharePrefer.userToken, "");
                         mUserRepository.putValue(SharePrefer.userAccount, "");
-                        CommonVariableCacheUtils.getInstance().token = "";
                         mldToastMsg.setValue("登录失败，请检查网络状态");
                         mldUserPwdLoginState.setValue(LoadState.Failed);
                     }
