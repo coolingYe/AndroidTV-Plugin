@@ -39,9 +39,6 @@ public class MainViewModel extends BaseViewModel {
     }
 
     public void reqProductListBySkuIds(List<String> skuIdList) {
-        if (skuIdList.size() > ProdConstants.PRD_PAGE_SIZE) {
-            skuIdList = skuIdList.subList(0, ProdConstants.PRD_PAGE_SIZE);
-        }
         dataRepository.getProductListBySkuIds(new ProductListBySkuIdsReq(skuIdList))
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())

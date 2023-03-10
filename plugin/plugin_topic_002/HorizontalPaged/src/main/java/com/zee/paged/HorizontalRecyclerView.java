@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
 
 import java.util.ArrayList;
+import java.util.Objects;
 
 public class HorizontalRecyclerView extends RecyclerView {
     private float initialX = 0;
@@ -206,7 +207,7 @@ public class HorizontalRecyclerView extends RecyclerView {
     @Override
     public void addFocusables(ArrayList<View> views, int direction, int focusableMode) {
         View view = null;
-        if (this.hasFocus() || mlastFocusPosition < 0 || (view = getLayoutManager().findViewByPosition(mlastFocusPosition)) == null) {
+        if (this.hasFocus() || mlastFocusPosition < 0 || (view = Objects.requireNonNull(getLayoutManager()).findViewByPosition(mlastFocusPosition)) == null) {
             super.addFocusables(views, direction, focusableMode);
         } else if (view.isFocusable()) {
             views.add(view);

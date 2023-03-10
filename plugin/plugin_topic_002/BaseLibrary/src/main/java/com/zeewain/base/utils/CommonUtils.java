@@ -2,6 +2,7 @@ package com.zeewain.base.utils;
 
 import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
 import android.view.View;
 
 import androidx.core.view.ViewCompat;
@@ -84,7 +85,11 @@ public class CommonUtils {
     public static String getDeviceSn(){
         if (BuildConfig.FLAVOR == "plugin") {
             if (BaseApplication.deviceSn == null || BaseApplication.deviceSn.isEmpty()) {
-                return SystemProperties.get("ro.serialno");
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    return Build.getSerial();
+                } else {
+                    return SystemProperties.get("ro.serialno");
+                }
             } else {
                 return BaseApplication.deviceSn;
             }

@@ -148,35 +148,25 @@ public class UserCommonAdapter extends RecyclerView.Adapter<UserCommonAdapter.Us
                     .load(commonItem.url)
                     .into(ivItemUserProductImg);
             ivItemUserProductDelSwitch.setVisibility(mDelAllMode ? View.VISIBLE : View.INVISIBLE);
+            ivItemUserProductDel.setVisibility(mDelMode ? View.VISIBLE : View.INVISIBLE);
             tvItemUserProductTitle.setText(commonItem.title);
             if (cardItemUserProduct.getNextFocusLeftId() == -1) {
                 cardItemUserProduct.setNextFocusLeftId(R.id.recycler_view_user_center_category);
             }
-            if (mOnItemClickListener != null) {
-                cardItemUserProduct.setOnClickListener(v -> {
-                    if (ivItemUserProductDel.getVisibility() == View.VISIBLE) {
-                        ivItemUserProductDel.setImageResource(R.mipmap.icon_delete_selected);
-                        if (mOnRemoveItemListener != null) {
-                            mOnRemoveItemListener.onRemove(v, position, commonItem);
-                        }
-                    }
-                    mOnItemClickListener.onItemClick(v, position, commonItem);
-                });
 
-            }
-//            ivItemUserProductDel.setOnClickListener(v -> {
-//                if (mOnRemoveItemListener != null) {
-//                    mOnRemoveItemListener.onRemove(v, position, commonItem);
-//                }
-//            });
-            cardItemUserProduct.setOnFocusChangeListener((v, hasFocus) -> {
-                if (mDelMode) {
-                    if (hasFocus) {
+            cardItemUserProduct.setOnClickListener(v -> {
+                if (ivItemUserProductDel.getVisibility() == View.VISIBLE || mDelMode) {
+                    if (mOnRemoveItemListener != null) {
                         ivItemUserProductDel.setVisibility(View.VISIBLE);
-                    } else {
-                        ivItemUserProductDel.setVisibility(View.INVISIBLE);
+                        ivItemUserProductDel.setImageResource(R.mipmap.icon_delete_selected);
+                        mOnRemoveItemListener.onRemove(v, position, commonItem);
                     }
+                } else if (mOnItemClickListener != null) {
+                    mOnItemClickListener.onItemClick(v, position, commonItem);
                 }
+            });
+
+            cardItemUserProduct.setOnFocusChangeListener((v, hasFocus) -> {
                 if (hasFocus) {
                     if (mOnItemFocusedListener != null) {
                         mOnItemFocusedListener.accept(position);
@@ -189,7 +179,7 @@ public class UserCommonAdapter extends RecyclerView.Adapter<UserCommonAdapter.Us
                     if (position <= 9) {
                         sHandler.post(mOnItemKeyEventUp);
                     }
-                } else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN && event.getAction() == KeyEvent.ACTION_DOWN){
+                } else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN && event.getAction() == KeyEvent.ACTION_DOWN) {
                     if (position >= getItemCount() - 10) {
                         sHandler.post(mOnItemKeyEventDown);
                     }

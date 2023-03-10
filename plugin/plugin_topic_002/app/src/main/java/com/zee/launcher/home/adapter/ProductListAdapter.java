@@ -2,6 +2,7 @@ package com.zee.launcher.home.adapter;
 
 import android.annotation.SuppressLint;
 import android.content.Intent;
+import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -83,7 +84,7 @@ public class ProductListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
                 if (hasFocus) {
                     materialCardView.setStrokeColor(0xFFFFFFFF);
                     materialCardView.setStrokeWidth(DisplayUtil.dip2px(itemView.getContext(), 1.5f));
-                    CommonUtils.scaleView(v, 1.1f);
+                    CommonUtils.scaleView(v, 1.13f);
                     if (callback != null) {
                         callback.accept(record);
                     }

@@ -38,7 +38,9 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.bumptech.glide.request.RequestOptions;
 import com.danikula.videocache.HttpProxyCacheServer;
+import com.danikula.videocache.file.Md5FileNameGenerator;
 import com.google.gson.Gson;
+import com.zee.launcher.home.BuildConfig;
 import com.zee.launcher.home.HomeApplication;
 import com.zee.launcher.home.R;
 import com.zee.launcher.home.data.DataRepository;
@@ -88,7 +90,7 @@ import java.util.Locale;
 
 import jp.wasabeef.glide.transformations.BlurTransformation;
 
-public class DetailActivity extends BaseActivity implements View.OnFocusChangeListener, ViewTreeObserver.OnGlobalFocusChangeListener {
+public class DetailActivity extends BaseActivity implements View.OnFocusChangeListener {
     private static final String TAG = "DetailActivity";
     private final static int REQUEST_CODE_LOGIN = 1000;
     private DetailViewModel detailViewModel;
@@ -122,6 +124,7 @@ public class DetailActivity extends BaseActivity implements View.OnFocusChangeLi
     private boolean isClickEnable = false;
     private boolean isAddCollected;
     private boolean isRequest = false;
+    private boolean isLastGestureAIActive = false;
     private static final int MSG_DOWNLOAD_ON_PROGRESS = 1;
     private static final int MSG_DOWNLOAD_ON_FAILED = 2;
     private static final int MSG_DOWNLOAD_ON_UPDATE = 3;
@@ -153,8 +156,8 @@ public class DetailActivity extends BaseActivity implements View.OnFocusChangeLi
 
         @Override
         public void onSuccess(String fileId, int type, File file) {
-            if (BaseConstants.DownloadFileType.PLUGIN_APP == type) {
-                HostManager.installPlugin(fileId);
+            if(fileId.equals(currentFileId)){
+                handler.sendEmptyMessage(MSG_DOWNLOAD_ON_UPDATE);
             }
         }
 
@@ -255,7 +258,11 @@ public class DetailActivity extends BaseActivity implements View.OnFocusChangeLi
 
         detailViewModel.initDataReq(skuId);
 
-        getWindow().getDecorView().getViewTreeObserver().addOnGlobalFocusChangeListener(this);
+        if (BuildConfig.FLAVOR == "plugin") {
+            if (HostManager.isGestureAiEnable()) {
+                isLastGestureAIActive = HostManager.isGestureAIActive();
+            }
+        }
     }
 
     private void initClickListener() {
@@ -321,10 +328,6 @@ public class DetailActivity extends BaseActivity implements View.OnFocusChangeLi
 
         networkErrViewDetail.setRetryClickListener(() -> detailViewModel.initDataReq(skuId));
 
-//        rlVideoRoot.setOnFocusChangeListener(this);
-//        layoutDownloadDetail.setOnFocusChangeListener(this);
-//        imgLikeDetail.setOnFocusChangeListener(this);
-//        imgCollectDetail.setOnFocusChangeListener(this);
         txtProductDesc.setOnFocusChangeListener(this);
 
         rlVideoRoot.setNextFocusLeftId(R.id.rl_video_root);
@@ -344,6 +347,7 @@ public class DetailActivity extends BaseActivity implements View.OnFocusChangeLi
             } else if (LoadState.Success == loadState) {
                 if (detailViewModel.proDetailResp.getPutawayStatus() == 1 && CommonUtils.isUserLogin()) {
                     detailViewModel.getPublishVersionInfo(new PublishReq(detailViewModel.proDetailResp.getSoftwareCode()));
+                    layoutDownloadDetail.setVisibility(View.VISIBLE);
                     detailViewModel.reqFavoriteState(skuId);
                 } else {
                     if (detailViewModel.proDetailResp.getPutawayStatus() == 2) {
@@ -366,6 +370,8 @@ public class DetailActivity extends BaseActivity implements View.OnFocusChangeLi
                 loadingViewDetail.stopAnim();
                 loadingViewDetail.setVisibility(View.GONE);
                 networkErrViewDetail.setVisibility(View.VISIBLE);
+                clCollectShareLayout.setVisibility(View.GONE);
+                layoutDownloadDetail.setVisibility(View.GONE);
             }
         });
 
@@ -583,6 +589,15 @@ public class DetailActivity extends BaseActivity implements View.OnFocusChangeLi
 
         videoView.setOnErrorListener((mp, what, extra) -> {
             showToast("播放视频出错");
+            HttpProxyCacheServer proxy = HomeApplication.getProxy(this);
+            if(proxy.isCached(videoUrl)){
+                File cacheDir = new File(getExternalCacheDir(), "video-cache");
+                String fileName = new Md5FileNameGenerator().generate(videoUrl);
+                File file = new File(cacheDir, fileName);
+                if(file.exists()){
+                    file.delete();
+                }
+            }
             loadProgress.setVisibility(View.GONE);
             return true;
         });
@@ -792,14 +807,9 @@ public class DetailActivity extends BaseActivity implements View.OnFocusChangeLi
     }
 
     private void updateDownloadTip(int progress) {
-        if (progress == 100) {
-            downloadIcon.setImageResource(R.mipmap.ic_play);
-            downloadPro.setText("开始体验");
-        } else {
-            downloadIcon.setVisibility(View.VISIBLE);
-            downloadIcon.setImageResource(R.mipmap.icon_download_loading);
-            downloadPro.setText(String.format("下载中(%s%%)", progress));
-        }
+        downloadIcon.setVisibility(View.VISIBLE);
+        downloadIcon.setImageResource(R.mipmap.icon_download_loading);
+        downloadPro.setText(String.format("下载中(%s%%)", progress));
         gradientProgressViewDetail.setProgress(progress);
     }
 
@@ -866,6 +876,10 @@ public class DetailActivity extends BaseActivity implements View.OnFocusChangeLi
         if (rlVideoRoot.getVisibility() == View.VISIBLE && isVideoInited) {
             videoView.resume();
         }
+
+        if (HostManager.isGestureAiEnable()) {
+            HostManager.startGestureAi(isLastGestureAIActive);
+        }
     }
 
     boolean isWindowOnFocus = true;
@@ -929,6 +943,9 @@ public class DetailActivity extends BaseActivity implements View.OnFocusChangeLi
             Gson gson = new Gson();
             AkSkResp akSkResp = gson.fromJson(akSkInfoString, AkSkResp.class);
             if (akSkResp != null) {
+                if (HostManager.isGestureAiEnable()) {
+                    isLastGestureAIActive = HostManager.isGestureAIActive();
+                }
                 Intent intent = new Intent();
                 intent.putExtra(BaseConstants.EXTRA_AUTH_AK_CODE, akSkResp.akCode);
                 intent.putExtra(BaseConstants.EXTRA_AUTH_SK_CODE, akSkResp.skCode);
@@ -996,12 +1013,6 @@ public class DetailActivity extends BaseActivity implements View.OnFocusChangeLi
                 e.printStackTrace();
             }
         }
-    }
-
-    @Override
-    public void onGlobalFocusChanged(View oldFocus, View newFocus) {
-        Log.d("test", "onGlobalFocusChanged newFocus: " + newFocus);
-        Log.d("test", "onGlobalFocusChanged oldFocus: " + oldFocus);
     }
 
     @SuppressLint("ResourceType")

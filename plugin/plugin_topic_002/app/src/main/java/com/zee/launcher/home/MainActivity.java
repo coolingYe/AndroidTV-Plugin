@@ -18,10 +18,12 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.target.Target;
 import com.zee.launcher.home.adapter.CenterLayoutManager;
+import com.zee.launcher.home.adapter.ProductListAdapter;
 import com.zee.launcher.home.data.DataRepository;
 import com.zee.launcher.home.data.layout.GlobalLayout;
-import com.zee.launcher.home.adapter.ProductListAdapter;
+import com.zee.launcher.home.data.model.ProductListMo;
 import com.zee.paged.HorizontalRecyclerView;
 import com.zeewain.base.config.SharePrefer;
 import com.zeewain.base.model.LoadState;
@@ -86,11 +88,13 @@ public class MainActivity extends BaseActivity {
     }
 
     private void initView(GlobalLayout globalLayout) {
-        if (globalLayout.layout.pages.size() > 0) {
-            if (globalLayout.layout.pages.get(0).content.size() > 0) {
-                if (globalLayout.layout.pages.get(0).content.get(0).config != null) {
-                    if (globalLayout.layout.pages.get(0).content.get(0).config.appSkus.size() > 0) {
-                        viewModel.reqProductListBySkuIds(globalLayout.layout.pages.get(0).content.get(0).config.appSkus);
+        if (globalLayout != null) {
+            if (globalLayout.layout.pages.size() > 0) {
+                if (globalLayout.layout.pages.get(0).content.size() > 0) {
+                    if (globalLayout.layout.pages.get(0).content.get(0).config != null) {
+                        if (globalLayout.layout.pages.get(0).content.get(0).config.appSkus.size() > 0) {
+                            viewModel.reqProductListBySkuIds(globalLayout.layout.pages.get(0).content.get(0).config.appSkus);
+                        }
                     }
                 }
             }
@@ -102,46 +106,7 @@ public class MainActivity extends BaseActivity {
         networkErrViewHomeClassic.setRetryClickListener(() -> {
             viewModel.reqServicePackInfo();
         });
-        productListAdapter.setCallback(record -> {
-            String backgroundUrl = "";
-            String logoImageUrl = "";
-            if (record.getExtendInfo() != null) {
-                if (record.getExtendInfo().getBackgroundLogo() != null && !record.getExtendInfo().getBackgroundLogo().isEmpty()) {
-                    logoImageUrl = record.getExtendInfo().getBackgroundLogo();
-                }
-            }
-
-            if (record.getExtendInfo() != null) {
-                if (record.getExtendInfo().getBackgroundImages() != null) {
-                    if (!record.getExtendInfo().getBackgroundImages().getH().isEmpty()) {
-                        backgroundUrl = record.getExtendInfo().getBackgroundImages().getH();
-                    } else backgroundUrl = record.getProductImg();
-                } else backgroundUrl = record.getProductImg();
-            } else backgroundUrl = record.getProductImg();
-
-            if (!logoImageUrl.isEmpty()) {
-                ivProductLogo.setVisibility(View.VISIBLE);
-                GlideApp.with(ivProductLogo.getContext())
-                        .load(logoImageUrl).transition(withCrossFade())
-                        .into(ivProductLogo);
-            } else ivProductLogo.setVisibility(View.INVISIBLE);
-
-            GlideApp.with(ivProductBackground.getContext())
-                    .load(backgroundUrl).placeholder(previousImage).transition(withCrossFade()).fitCenter()
-                    .into(ivProductBackground);
-
-            String playNum = String.valueOf(record.getHeat());
-            String score = "  ·  " + record.getScore() + "分";
-
-            tvProductDetail.setVisibility(View.VISIBLE);
-            tvProductDetail.setText(playNum + score);
-            tvProductDesc.setText(record.getSimplerIntroduce());
-
-            new Thread(() -> {
-                previousImage = getDrawableGlide(record.getProductImg(), this);
-            }).start();
-
-        });
+        productListAdapter.setCallback(this::getProductCardInfo);
         productListAdapter.setOnItemFocusedListens(integer -> {
             centerLayoutManager.smoothScrollToPosition(recyclerView, new RecyclerView.State(), integer);
         });
@@ -164,6 +129,7 @@ public class MainActivity extends BaseActivity {
             } else {
                 loadingViewHomeClassic.stopAnim();
                 loadingViewHomeClassic.setVisibility(View.GONE);
+                clMainLayout.setVisibility(View.GONE);
                 networkErrViewHomeClassic.setVisibility(View.VISIBLE);
             }
         });
@@ -171,6 +137,11 @@ public class MainActivity extends BaseActivity {
         viewModel.mldProductRecodeListLoadState.observe(this, loadState -> {
                 if (LoadState.Success == loadState) {
                     productListAdapter.updateList(viewModel.productRecodeList);
+                    if (viewModel.productRecodeList != null) { // fix not data for main background when touch click
+                        if (viewModel.productRecodeList.size() > 0) {
+                            getProductCardInfo(viewModel.productRecodeList.get(0));
+                        }
+                    }
                     recyclerView.post(() -> {
                         new Thread(() -> {
                             try {
@@ -184,6 +155,46 @@ public class MainActivity extends BaseActivity {
                     });
                 }
         });
+    }
+
+    private void getProductCardInfo(ProductListMo.Record record) {
+        String backgroundUrl = "";
+        String logoImageUrl = "";
+        if (record.getExtendInfo() != null) {
+            if (record.getExtendInfo().getBackgroundLogo() != null && !record.getExtendInfo().getBackgroundLogo().isEmpty()) {
+                logoImageUrl = record.getExtendInfo().getBackgroundLogo();
+            }
+        }
+
+        if (record.getExtendInfo() != null) {
+            if (record.getExtendInfo().getBackgroundImages() != null) {
+                if (!record.getExtendInfo().getBackgroundImages().getH().isEmpty()) {
+                    backgroundUrl = record.getExtendInfo().getBackgroundImages().getH();
+                } else backgroundUrl = record.getProductImg();
+            } else backgroundUrl = record.getProductImg();
+        } else backgroundUrl = record.getProductImg();
+
+        if (!logoImageUrl.isEmpty()) {
+            ivProductLogo.setVisibility(View.VISIBLE);
+            GlideApp.with(ivProductLogo.getContext())
+                    .load(logoImageUrl).transition(withCrossFade()).placeholder(0).override(Target.SIZE_ORIGINAL, Target.SIZE_ORIGINAL)
+                    .into(ivProductLogo);
+        } else ivProductLogo.setVisibility(View.GONE);
+
+        GlideApp.with(ivProductBackground.getContext())
+                .load(backgroundUrl).placeholder(previousImage).transition(withCrossFade()).fitCenter()
+                .into(ivProductBackground);
+
+        String playNum = String.valueOf(record.getHeat());
+        String score = "  ·  " + record.getScore() + "分";
+
+        tvProductDetail.setVisibility(View.VISIBLE);
+        tvProductDetail.setText(playNum + score);
+        tvProductDesc.setText(record.getSimplerIntroduce());
+
+        new Thread(() -> {
+            previousImage = getDrawableGlide(record.getProductImg(), this);
+        }).start();
     }
 
     @Override

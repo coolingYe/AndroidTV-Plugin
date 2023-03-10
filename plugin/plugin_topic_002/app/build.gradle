@@ -49,7 +49,7 @@ android {
 
     productFlavors {
         single {
-            applicationId rootProject.ext.android.applicationId
+            applicationId rootProject.ext.android.applicationId + ".single"
             dimension "root"
         }
 
@@ -60,20 +60,20 @@ android {
     }
 }
 
-apply plugin: 'replugin-plugin-gradle'
-repluginPluginConfig {
-    pluginName = "PLUGIN_TOPIC_002"
-    hostApplicationId = "com.zee.launcher"
-    hostAppLauncherActivity = "com.zwn.launcher.MainActivity"
-}
+//apply plugin: 'replugin-plugin-gradle'
+//repluginPluginConfig {
+//    pluginName = "PLUGIN_TOPIC_002"
+//    hostApplicationId = "com.zee.launcher"
+//    hostAppLauncherActivity = "com.zwn.launcher.MainActivity"
+//}
 
 dependencies {
     implementation "com.qihoo360.replugin:replugin-plugin-lib:3.0.0"
-//    implementation project(path: ':DownloadLib')
-//    implementation project(path: ':ZeeManager')
+    implementation project(path: ':DownloadLib')
+    implementation project(path: ':ZeeManager')
 
-    compileOnly project(path: ':DownloadLib')
-    compileOnly project(path: ':ZeeManager')
+//    compileOnly project(path: ':DownloadLib')
+//    compileOnly project(path: ':ZeeManager')
     api project(':BaseLibrary')
     api project(':HorizontalPaged')
     implementation project(path: ':UserCenter')

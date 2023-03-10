@@ -131,9 +131,6 @@ public class InteractiveRecordFragment extends BaseUserCenterFragment implements
 
     @Override
     public void onItemClick(View view, int position, UserPageCommonItem commonItem) {
-        if (position == RecyclerView.NO_POSITION || mDelMode) {
-            return;
-        }
         try {
             Intent intent = new Intent(getActivity(), Class.forName("com.zee.launcher.home.ui.detail.DetailActivity"));
             intent.putExtra("skuId", commonItem.skuId);

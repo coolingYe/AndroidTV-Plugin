@@ -89,9 +89,6 @@ public abstract class BaseUserCenterFragment extends Fragment {
         });
 
         mAdapter.setOnItemClickListener((view, position, commonItem) -> {
-            if (position == RecyclerView.NO_POSITION || mDelMode) {
-                return;
-            }
             if(mAdapter.getItemCount() > position) {
                 UserPageCommonItem item = (UserPageCommonItem) mAdapter.getItem(position);
                 try {

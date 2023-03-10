@@ -3,11 +3,15 @@ package com.zeewain.base.ui;
 import android.os.Bundle;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.zeewain.base.R;
 import com.zeewain.base.utils.ToastUtils;
 import com.zeewain.base.views.LoadingDialog;
+
+import java.util.Objects;
 
 public class BaseActivity extends AppCompatActivity {
     private LoadingDialog loadingDialog;
@@ -70,6 +74,9 @@ public class BaseActivity extends AppCompatActivity {
         showToast(getString(resId));
     }
     public void showToast(String msg){
+        ToastUtils.setView(R.layout.layout_toast_view);
+        TextView textView = Objects.requireNonNull(ToastUtils.getView()).findViewById(R.id.tv_toast_msg);
+        textView.setText(msg);
         ToastUtils.showShort(msg);
     }
 }

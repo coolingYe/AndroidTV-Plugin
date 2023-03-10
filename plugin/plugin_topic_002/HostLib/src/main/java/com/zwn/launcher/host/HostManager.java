@@ -106,7 +106,7 @@ public class HostManager {
             return getHostSp().getString(key, defValue);
         } else {
             if ("UserToken".equals(key)) {
-                return "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJ6ZWV3YWluIiwiYXBwQ29kZSI6Im1hbGxfdW1zIiwidXNlcklkIjoxODk4MzI1NjMwODE0MzMwOTUsInVzZXJDb2RlIjoiYWlib3hfcmtfMDAxIiwiZXhwaXJlVGltZSI6MTY3NzU4MTQxOTQ1NywidXNlclR5cGUiOjIsImV4cCI6MTY3NzU4MTQxOX0.niovbJybSrBRa86wGLvavW5-iPpDz4CN-VJCCmZgOAk";
+                return "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJ6ZWV3YWluIiwiYXBwQ29kZSI6Im1hbGxfdW1zIiwidXNlcklkIjoxODk4MzI1NjMwODE0MzMwOTUsInVzZXJDb2RlIjoiYWlib3hfcmtfMDAxIiwiZXhwaXJlVGltZSI6MTY3ODUxNzIwNzMwMiwidXNlclR5cGUiOjIsImV4cCI6MTY3ODUxNzIwN30.G25mrCrW_VaYxwVsHHizHPUMPaiaVPB5MTeo1ulR0sE";
             } else if ("PlatformInfo".equals(key)) {
                 return "AndroidRockchipTVAIIP/1.3.2 (ZWN_AIIP_003 1.0; Android 12)";
             } else if ("BaseUrl".equals(key)) {
@@ -140,6 +140,43 @@ public class HostManager {
         if (BuildConfig.FLAVOR == "plugin") {
             return RePlugin.getHostContext();
         } else return context;
+    }
+
+    public static boolean isGestureAiEnable(){
+        if (BuildConfig.FLAVOR == "plugin") {
+            try {
+                return getHostManager().isGestureAiEnable();
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        }
+        return false;
+    }
+
+    public static void startGestureAi(boolean withActive){
+        try {
+            getHostManager().startGestureAi(withActive);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void stopGestureAi(){
+        try {
+            getHostManager().stopGestureAi();
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static boolean isGestureAIActive(){
+        try {
+            return getHostManager().isGestureAIActive();
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+
+        return false;
     }
 
     static class SimulateHostManager {

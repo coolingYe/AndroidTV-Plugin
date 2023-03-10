@@ -6,6 +6,7 @@
     android:layout_height="match_parent"
     android:clipChildren="false"
     android:clipToPadding="false"
+    android:background="#1D2025"
     tools:context=".MainActivity">
 
     <ImageView
@@ -17,7 +18,7 @@
     <ImageView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@mipmap/img_main_home_bg" />
+        android:background="@drawable/ic_mask_background" />
 
     <com.zeewain.base.widgets.TopBarView
         android:id="@+id/top_bar_view"
@@ -36,11 +37,9 @@
 
         <ImageView
             android:id="@+id/iv_main_product_logo"
-            android:layout_width="154dp"
-            android:layout_height="60dp"
+            android:layout_width="169dp"
+            android:layout_height="111dp"
             android:layout_marginStart="45dp"
-            android:layout_marginBottom="@dimen/src_dp_12"
-            android:scaleType="centerCrop"
             app:layout_constraintBottom_toTopOf="@+id/tv_main_product_detail"
             app:layout_constraintStart_toStartOf="parent" />
 
@@ -53,23 +52,24 @@
             android:drawableStart="@mipmap/ic_product_hot"
             android:drawablePadding="3dp"
             android:textColor="#FA8219"
-            android:textSize="@dimen/src_font_12"
+            android:textSize="@dimen/src_font_14"
             android:visibility="gone"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            tools:text="xxxxxxxxx"
+            tools:text="身体识别"
             tools:visibility="visible"/>
 
         <TextView
             android:id="@+id/tv_main_product_desc"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/src_dp_12"
+            android:layout_marginTop="4dp"
             android:textColor="@android:color/white"
-            android:textSize="@dimen/src_font_12"
+            android:fontFamily="sans-serif"
+            android:textSize="@dimen/src_font_14"
             app:layout_constraintStart_toStartOf="@+id/tv_main_product_detail"
             app:layout_constraintTop_toBottomOf="@+id/tv_main_product_detail"
-            tools:text="xxxxxxxxx" />
+            tools:text="身体识别" />
 
         <com.zee.paged.HorizontalRecyclerView
             android:id="@+id/rv_main_product"
