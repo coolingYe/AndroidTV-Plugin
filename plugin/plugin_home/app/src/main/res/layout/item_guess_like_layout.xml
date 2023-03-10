@@ -12,8 +12,8 @@
     app:cardElevation="0dp"
     >
 
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/cl_type_classic_root"
+    <com.zee.launcher.home.widgets.ScanningConstraintLayout
+        android:id="@+id/scl_type_classic_root"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:paddingStart="2dp"
@@ -70,6 +70,6 @@
 
         </LinearLayout>
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
+    </com.zee.launcher.home.widgets.ScanningConstraintLayout>
 
 </com.google.android.material.card.MaterialCardView>

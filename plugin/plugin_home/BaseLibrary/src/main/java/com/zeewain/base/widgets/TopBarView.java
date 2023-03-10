@@ -7,8 +7,11 @@ import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.util.AttributeSet;
+import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.animation.AnimationUtils;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -27,9 +30,11 @@ public class TopBarView extends ConstraintLayout implements View.OnFocusChangeLi
     private LinearLayout userRootLayout;
     private ImageView imgUser, imgWifi, imgSettings, imgBack;
     private TextView txtUserInfo;
+    private TextView txtLogo;
     private FrameLayout flCenterLayout;
     private OnSettingsItemClickListener onSettingsItemClickListener;
     private NetworkChangeReceiver networkChangeReceiver;
+    private static boolean isShowTxtLogo = true;
 
     public TopBarView(@NonNull Context context) {
         this(context, null);
@@ -50,6 +55,8 @@ public class TopBarView extends ConstraintLayout implements View.OnFocusChangeLi
         userRootLayout = findViewById(R.id.ll_user_top_bar);
         imgUser = findViewById(R.id.img_user_top_bar);
         txtUserInfo = findViewById(R.id.txt_user_top_bar);
+        txtLogo = findViewById(R.id.txt_top_bar_logo);
+
         userRootLayout.setNextFocusLeftId(R.id.ll_user_top_bar);
 
         imgWifi = findViewById(R.id.img_wifi_top_bar);
@@ -60,11 +67,14 @@ public class TopBarView extends ConstraintLayout implements View.OnFocusChangeLi
 
         flCenterLayout = findViewById(R.id.fl_top_bar_center);
         updateUserImg("");
+        setShowTxtLogo(isShowTxtLogo);
     }
 
     public void addCenterView(View view){
         flCenterLayout.removeAllViews();
-        flCenterLayout.addView(view);
+        FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT);
+        layoutParams.gravity = Gravity.CENTER;
+        flCenterLayout.addView(view, layoutParams);
     }
 
     private void initListener(){
@@ -81,6 +91,16 @@ public class TopBarView extends ConstraintLayout implements View.OnFocusChangeLi
                 }
             }
         });
+        imgBack.setOnKeyListener((v, keyCode, event) -> {
+            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && event.getAction() == KeyEvent.ACTION_DOWN) {
+                v.clearAnimation();
+                v.startAnimation(AnimationUtils.loadAnimation(getContext(), R.anim.host_shake));
+            }else if(keyCode == KeyEvent.KEYCODE_DPAD_UP && event.getAction() == KeyEvent.ACTION_DOWN){
+                v.clearAnimation();
+                v.startAnimation(AnimationUtils.loadAnimation(getContext(), R.anim.host_shake_y));
+            }
+            return false;
+        });
 
         userRootLayout.setOnClickListener(v -> {
             try {
@@ -90,10 +110,30 @@ public class TopBarView extends ConstraintLayout implements View.OnFocusChangeLi
                 e.printStackTrace();
             }
         });
+        userRootLayout.setOnKeyListener((v, keyCode, event) -> {
+            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && event.getAction() == KeyEvent.ACTION_DOWN) {
+                v.clearAnimation();
+                v.startAnimation(AnimationUtils.loadAnimation(getContext(), R.anim.host_shake));
+            }else if(keyCode == KeyEvent.KEYCODE_DPAD_UP && event.getAction() == KeyEvent.ACTION_DOWN){
+                v.clearAnimation();
+                v.startAnimation(AnimationUtils.loadAnimation(getContext(), R.anim.host_shake_y));
+            }
+            return false;
+        });
 
 
         imgWifi.setOnClickListener(v -> {
             CommonUtils.startSettingsActivity(v.getContext());
+        });
+        imgWifi.setOnKeyListener((v, keyCode, event) -> {
+            if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && event.getAction() == KeyEvent.ACTION_DOWN) {
+                v.clearAnimation();
+                v.startAnimation(AnimationUtils.loadAnimation(getContext(), R.anim.host_shake));
+            }else if(keyCode == KeyEvent.KEYCODE_DPAD_UP && event.getAction() == KeyEvent.ACTION_DOWN){
+                v.clearAnimation();
+                v.startAnimation(AnimationUtils.loadAnimation(getContext(), R.anim.host_shake_y));
+            }
+            return false;
         });
 
         imgSettings.setOnClickListener(v -> {
@@ -102,6 +142,13 @@ public class TopBarView extends ConstraintLayout implements View.OnFocusChangeLi
             }else{
                 CommonUtils.startSettingsActivity(v.getContext());
             }
+        });
+        imgSettings.setOnKeyListener((v, keyCode, event) -> {
+            if(keyCode == KeyEvent.KEYCODE_DPAD_UP && event.getAction() == KeyEvent.ACTION_DOWN){
+                v.clearAnimation();
+                v.startAnimation(AnimationUtils.loadAnimation(getContext(), R.anim.host_shake_y));
+            }
+            return false;
         });
     }
 
@@ -128,6 +175,15 @@ public class TopBarView extends ConstraintLayout implements View.OnFocusChangeLi
             imgUser.setImageResource(R.mipmap.top_bar_user_login);
             txtUserInfo.setVisibility(View.VISIBLE);
             txtUserInfo.setText("登录");
+        }
+    }
+
+    public void setShowTxtLogo(boolean show){
+        isShowTxtLogo = show;
+        if(isShowTxtLogo){
+            txtLogo.setVisibility(View.VISIBLE);
+        }else{
+            txtLogo.setVisibility(View.GONE);
         }
     }
 
@@ -181,7 +237,7 @@ public class TopBarView extends ConstraintLayout implements View.OnFocusChangeLi
     }
 
     private void updateWifiInfo(){
-        ConnectivityManager connectivityManager = (ConnectivityManager) getContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+        ConnectivityManager connectivityManager = (ConnectivityManager) getContext().getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo networkInfo = connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
         if (networkInfo != null && networkInfo.isConnected()) {
             imgWifi.setImageResource(R.drawable.selector_top_bar_wifi);

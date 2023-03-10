@@ -6,10 +6,11 @@ import android.view.View;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.zeewain.base.model.LoadState;
 import com.zeewain.base.views.CustomAlertDialog;
+import com.zeewain.base.widgets.CenterGridLayoutManager;
 import com.zwn.user.R;
 import com.zwn.user.adapter.UserCommonAdapter;
 import com.zwn.user.data.model.FavoritesItem;
@@ -37,7 +38,8 @@ public class MineFavoritesFragment extends BaseUserCenterFragment {
         super.initView(view);
         mAdapter = new UserCommonAdapter();
         rvUserCommPage = view.findViewById(R.id.rv_user_comm_page);
-        rvUserCommPage.setLayoutManager(new GridLayoutManager(getContext(), 5));
+        centerGridLayoutManager = new CenterGridLayoutManager(requireContext(), 5);
+        rvUserCommPage.setLayoutManager(centerGridLayoutManager);
         rvUserCommPage.setAdapter(mAdapter);
     }
 
@@ -54,6 +56,7 @@ public class MineFavoritesFragment extends BaseUserCenterFragment {
         mAdapter.setOnRemoveItemListener((view, position, commonItem) -> {
             mViewModel.reqDelFavorite(commonItem.skuId);
         });
+        mAdapter.setOnItemFocusedListener(integer -> centerGridLayoutManager.smoothScrollToPosition(rvUserCommPage, new RecyclerView.State(), integer));
 
         cardUserCommPageDelAll.setOnClickListener(v -> {
             showClearAllDialog(v.getContext());

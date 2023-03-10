@@ -6,7 +6,7 @@ public class ServicePkgInfoResp {
     /**
      * 布局详情信息
      */
-    public JSONObject layoutJson;
+    public JSONObject themeJson;
 
     /**
      * 服务包ID

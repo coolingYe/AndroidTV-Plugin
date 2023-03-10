@@ -201,16 +201,34 @@ public class LoadingPluginActivity extends BaseActivity {
         if(pluginName.equals(HostManager.getInstallingFileId())){
             Log.i(TAG, "app installing");
         }else if (pluginFile.exists()) {//new version
-            HostManager.installPlugin(downloadInfo.fileId);
+            if(downloadInfo.packageMd5.equals(FileUtils.file2MD5(pluginFile))) {
+                HostManager.installPlugin(downloadInfo.fileId);
+            }else{
+                pluginFile.delete();
+                CareController.instance.deleteDownloadInfo(downloadInfo.fileId);
+                Log.e(TAG, "app file damage！ packageName=" + downloadInfo.mainClassPath);
+                showToast("应用文件损坏！");
+                delayFinish();
+            }
         }else{
             if(ApkUtil.isAppInstalled(this, downloadInfo.mainClassPath)){
                 prepareStartPlugin();
             }else{
                 Log.e(TAG, "app file not exists and app not installed");
                 showToast("应用不存在！");
-                finish();
+                CareController.instance.deleteDownloadInfo(downloadInfo.fileId);
+                delayFinish();
             }
         }
+    }
+
+    private void delayFinish(){
+        loadingView.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                finish();
+            }
+        }, 500);
     }
 
     private void initDownloadRelatedDataMap(String relyIds){
@@ -290,7 +308,8 @@ public class LoadingPluginActivity extends BaseActivity {
                         boolean copyModelSuccess = FileUtils.copyFilesTo(modelFileList, desDir);
                         if(!copyModelSuccess){
                             finish();
-                            showToast("拷贝模型失败！");
+                            //showToast("拷贝模型失败！");
+                            Log.e(TAG, "copyModel() failed !");
                             return;
                         }
                     }
@@ -449,10 +468,14 @@ public class LoadingPluginActivity extends BaseActivity {
             intent.putExtra(BaseConstants.EXTRA_AUTH_TOKEN, userToken);
 
             HostManager.setLastPluginPackageName(packageName);
+            if(HostManager.isGestureAiEnable()){
+                HostManager.stopGestureAi();
+            }
 
             ComponentName cn = new ComponentName(packageName, className);
             intent.setComponent(cn);
-            startActivity(intent);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            HostManager.getUseContext(this).startActivity(intent);
             finish();
         }
     }

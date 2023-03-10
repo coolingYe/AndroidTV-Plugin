@@ -19,9 +19,7 @@ import com.zwn.user.data.model.UserCenterCategory;
 
 import java.util.List;
 
-public class UserCenterCategoryAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
-    private static final int TYPE_NORMAL = 0;
-    private static final int TYPE_SELECTED = 1;
+public class UserCenterCategoryAdapter extends RecyclerView.Adapter<UserCenterCategoryAdapter.CategoryViewHolder> {
     private final List<UserCenterCategory> categoryList;
     public int selectedIndex = 0;
     private OnCategorySelectedListener onCategorySelectedListener;
@@ -40,31 +38,14 @@ public class UserCenterCategoryAdapter extends RecyclerView.Adapter<RecyclerView
 
     @NonNull
     @Override
-    public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        if (viewType == TYPE_SELECTED) {
-            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_user_center_category, parent, false);
-            return new CategorySelectedViewHolder(view);
-        } else {
+    public UserCenterCategoryAdapter.CategoryViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_user_center_category, parent, false);
             return new CategoryViewHolder(view);
-        }
     }
 
     @Override
-    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
-        if (holder instanceof CategorySelectedViewHolder) {
-            ((CategorySelectedViewHolder) holder).bind(categoryList.get(position), position);
-        } else {
-            ((CategoryViewHolder) holder).bind(categoryList.get(position), position);
-        }
-    }
-
-    @Override
-    public int getItemViewType(int position) {
-        if(selectedIndex == position){
-            return TYPE_SELECTED;
-        }
-        return TYPE_NORMAL;
+    public void onBindViewHolder(@NonNull UserCenterCategoryAdapter.CategoryViewHolder holder, int position) {
+      holder.bind(categoryList.get(position), position);
     }
 
     @Override
@@ -108,13 +89,20 @@ public class UserCenterCategoryAdapter extends RecyclerView.Adapter<RecyclerView
         public final TextView txtUserCenterCategory;
 
         public void bind(UserCenterCategory userCenterCategory, int position) {
-            llUserCenterCategory.setBackgroundColor(Color.TRANSPARENT);
-            txtUserCenterCategory.setTextColor(0xFF333333);
-            imgUserCenterCategory.setImageResource(userCenterCategory.iconResId);
-
+            boolean isSelected = position == selectedIndex;
+            txtUserCenterCategory.setTextColor(isSelected ? 0xFFFA8219  : 0xFF333333);
+            imgUserCenterCategory.setImageResource(isSelected ? userCenterCategory.iconSelectedResId : userCenterCategory.iconResId);
+            cardUserCenterCategory.setStrokeColor(isSelected  ? 0xFFFA701F:0x00FFFFFF);
+            cardUserCenterCategory.setStrokeWidth(isSelected && recyclerView.hasFocus() ?
+                    DisplayUtil.dip2px(txtUserCenterCategory.getContext(), 1): 0 );
             txtUserCenterCategory.setText(userCenterCategory.title);
             cardUserCenterCategory.setTag(position);
             cardUserCenterCategory.setOnClickListener(this);
+            if (isSelected && recyclerView.hasFocus()) {
+                llUserCenterCategory.setBackgroundResource(R.drawable.shape_radius5_color19fa8219);
+            }else {
+                llUserCenterCategory.setBackgroundColor(Color.TRANSPARENT);
+            }
         }
 
         public CategoryViewHolder(@NonNull View view) {
@@ -136,32 +124,6 @@ public class UserCenterCategoryAdapter extends RecyclerView.Adapter<RecyclerView
                 }
                 notifyDataSetChanged();
             }
-        }
-    }
-
-    class CategorySelectedViewHolder extends CategoryViewHolder {
-        private int strokeWidth = 0;
-
-        public CategorySelectedViewHolder(@NonNull View view) {
-            super(view);
-            strokeWidth = DisplayUtil.dip2px(view.getContext(), 1);
-        }
-
-        public void bind(UserCenterCategory userCenterCategory, int position) {
-            txtUserCenterCategory.setTextColor(0xFFFA8219);
-            imgUserCenterCategory.setImageResource(userCenterCategory.iconSelectedResId);
-            if (recyclerView.hasFocus()) {
-                llUserCenterCategory.setBackgroundResource(R.drawable.shape_radius5_color19fa8219);
-                cardUserCenterCategory.setStrokeColor(0xFFFA701F);
-                cardUserCenterCategory.setStrokeWidth(strokeWidth);
-            } else {
-                llUserCenterCategory.setBackgroundColor(Color.TRANSPARENT);
-                cardUserCenterCategory.setStrokeColor(0x00FFFFFF);
-                cardUserCenterCategory.setStrokeWidth(0);
-            }
-            txtUserCenterCategory.setText(userCenterCategory.title);
-            cardUserCenterCategory.setTag(position);
-            cardUserCenterCategory.setOnClickListener(this);
         }
     }
 

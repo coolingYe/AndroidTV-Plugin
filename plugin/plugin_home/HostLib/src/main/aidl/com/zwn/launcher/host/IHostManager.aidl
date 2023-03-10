@@ -19,4 +19,12 @@ interface IHostManager {
     void logoutClear();
 
     void gotoLoginPage();
+
+    boolean isGestureAiEnable();
+
+    void startGestureAi(boolean withActive);
+
+    void stopGestureAi();
+
+    boolean isGestureAIActive();
 }

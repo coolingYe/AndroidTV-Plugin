@@ -283,6 +283,7 @@ public class ProductListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
                     int keyCode = event.getKeyCode();
                     if (event.getAction() == KeyEvent.ACTION_DOWN && (keyCode == KeyEvent.KEYCODE_DPAD_LEFT || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT)) {
                         View focusedView = recyclerView.getFocusedChild();
+                        if(focusedView == null) return  false;
                         View nextFocusView;
                         try {
                             if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {

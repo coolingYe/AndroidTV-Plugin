@@ -15,6 +15,7 @@ import com.google.android.material.card.MaterialCardView;
 import com.zee.launcher.home.R;
 import com.zee.launcher.home.data.model.ProductListMo;
 import com.zee.launcher.home.ui.detail.DetailActivity;
+import com.zee.launcher.home.widgets.ScanningConstraintLayout;
 import com.zeewain.base.utils.CommonUtils;
 import com.zeewain.base.utils.DisplayUtil;
 import com.zeewain.base.utils.GlideApp;
@@ -25,6 +26,7 @@ public class ClassicItemViewHolder extends RecyclerView.ViewHolder implements Vi
     public final TextView txtSummary;
     public final ImageView imageView;
     public final MaterialCardView cardRootLayout;
+    public final ScanningConstraintLayout scanningLayout;
     public final CardView cardView;
     public OnItemFocusChange onItemFocusChange;
 
@@ -48,6 +50,7 @@ public class ClassicItemViewHolder extends RecyclerView.ViewHolder implements Vi
         txtSummary = view.findViewById(R.id.txt_type_classic_summary);
         imageView = view.findViewById(R.id.img_type_classic);
         cardView = view.findViewById(R.id.cardView_type_classic);
+        scanningLayout = view.findViewById(R.id.scl_type_classic_root);
         cardRootLayout = view.findViewById(R.id.card_type_classic_root);
         cardRootLayout.setOnClickListener(this);
         cardRootLayout.setOnFocusChangeListener(new View.OnFocusChangeListener() {
@@ -59,13 +62,18 @@ public class ClassicItemViewHolder extends RecyclerView.ViewHolder implements Vi
                 if(hasFocus){
                     cardRootLayout.setStrokeColor(0xFFFA701F);
                     cardRootLayout.setStrokeWidth(strokeWidth);
-                    CommonUtils.scaleView(v, 1.1f);
+                    CommonUtils.scaleView(v, 1.12f);
                 }else{
                     cardRootLayout.setStrokeColor(0x00FFFFFF);
                     cardRootLayout.setStrokeWidth(0);
                     v.clearAnimation();
                     CommonUtils.scaleView(v, 1f);
                 }
+
+                if(hasFocus)
+                    scanningLayout.startAnimator();
+                else
+                    scanningLayout.stopAnimator();
             }
         });
     }

@@ -48,17 +48,17 @@ android {
 }
 
 // 这个plugin需要放在android配置之后，因为需要读取android中的配置项
-apply plugin: 'replugin-plugin-gradle'
+/*apply plugin: 'replugin-plugin-gradle'
 repluginPluginConfig {
     pluginName = "PLUGIN_TOPIC_001"
     hostApplicationId = "com.zee.launcher"
     hostAppLauncherActivity = "com.zwn.launcher.MainActivity"
-}
+}*/
 
 dependencies {
     implementation "com.qihoo360.replugin:replugin-plugin-lib:3.0.0"
-    compileOnly project(path: ':DownloadLib')
-    compileOnly project(path: ':ZeeManager')
+    /*compileOnly project(path: ':DownloadLib')
+    compileOnly project(path: ':ZeeManager')*/
 
     api project(':BaseLibrary')
     api project(':HorizontalPaged')
@@ -67,8 +67,8 @@ dependencies {
     //缓存 Video
     implementation rootProject.ext.dependencies.videocache
 
-    /*implementation project(path: ':DownloadLib')
-    implementation project(path: ':ZeeManager')*/
+    implementation project(path: ':DownloadLib')
+    implementation project(path: ':ZeeManager')
 
 }
 

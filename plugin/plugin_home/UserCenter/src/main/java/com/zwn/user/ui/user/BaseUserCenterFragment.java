@@ -2,9 +2,11 @@ package com.zwn.user.ui.user;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.AnimationUtils;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -17,6 +19,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.card.MaterialCardView;
 import com.zeewain.base.utils.CommonUtils;
 import com.zeewain.base.utils.DisplayUtil;
+import com.zeewain.base.widgets.CenterGridLayoutManager;
 import com.zeewain.base.widgets.LoadingView;
 import com.zeewain.base.widgets.NetworkErrView;
 import com.zwn.user.R;
@@ -38,6 +41,7 @@ public abstract class BaseUserCenterFragment extends Fragment implements View.On
     protected boolean mDelMode = false;
     protected UserCommonAdapter mAdapter;
     public RecyclerView rvUserCommPage;
+    public CenterGridLayoutManager centerGridLayoutManager;
 
 
     @Nullable
@@ -76,6 +80,13 @@ public abstract class BaseUserCenterFragment extends Fragment implements View.On
     public void initListener() {
         cardUserCommPageDelAll.setOnFocusChangeListener(this);
         cardUserCommPageDel.setOnFocusChangeListener(this);
+        cardUserCommPageDel.setOnKeyListener((v, keyCode, event) -> {
+            if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && event.getAction() == KeyEvent.ACTION_DOWN) {
+                v.clearAnimation();
+                v.startAnimation(AnimationUtils.loadAnimation(getContext(), R.anim.host_shake));
+            }
+            return false;
+        });
     }
 
 

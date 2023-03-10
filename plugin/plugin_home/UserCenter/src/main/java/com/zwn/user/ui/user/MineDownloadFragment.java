@@ -7,9 +7,10 @@ import android.view.View;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.zeewain.base.views.CustomAlertDialog;
+import com.zeewain.base.widgets.CenterGridLayoutManager;
 import com.zwn.lib_download.model.DownloadInfo;
 import com.zwn.user.R;
 import com.zwn.user.adapter.UserCommonAdapter;
@@ -39,7 +40,8 @@ public class MineDownloadFragment extends BaseUserCenterFragment {
         super.initView(view);
         mAdapter = new UserCommonAdapter();
         rvUserCommPage = view.findViewById(R.id.rv_user_comm_page);
-        rvUserCommPage.setLayoutManager(new GridLayoutManager(getContext(), 5));
+        centerGridLayoutManager = new CenterGridLayoutManager(requireContext(), 5);
+        rvUserCommPage.setLayoutManager(centerGridLayoutManager);
         rvUserCommPage.setAdapter(mAdapter);
     }
 
@@ -51,6 +53,7 @@ public class MineDownloadFragment extends BaseUserCenterFragment {
             removeDownload(commonItem.skuId);
             checkStateMine();
         });
+        mAdapter.setOnItemFocusedListener(integer -> centerGridLayoutManager.smoothScrollToPosition(rvUserCommPage, new RecyclerView.State(), integer));
 
         cardUserCommPageDelAll.setOnClickListener(v -> {
             showClearAllDialog(v.getContext());
@@ -66,7 +69,7 @@ public class MineDownloadFragment extends BaseUserCenterFragment {
     @SuppressLint("NotifyDataSetChanged")
     private void initData() {
         mAdapter.clearData();
-        mViewModel.getDownloadList();
+//        mViewModel.getDownloadList();
         for (DownloadInfo downloadInfo: mViewModel.pDownloadInfoList) {
             UserPageCommonItem item = new UserPageCommonItem(downloadInfo.fileImgUrl, downloadInfo.fileName, downloadInfo.extraId);
             mAdapter.addItem(item);

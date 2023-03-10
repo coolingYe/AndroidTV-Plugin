@@ -33,6 +33,7 @@ public class GlobalLayout {
             public ConfigDTO config;
             @JSONField(name = "content")
             public JSONArray content;
+
             public PageHeaderLayout pageHeaderLayout;
             public CategoryBarLayout categoryBarLayout;
 

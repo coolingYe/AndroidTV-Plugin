@@ -13,7 +13,7 @@ public class HostManager {
     private volatile static IHostManager hostManager;
     private static volatile SharedPreferences hostSp;
 
-    public static IHostManager getHostManager(){
+    /*public static IHostManager getHostManager(){
         if(hostManager == null){
             synchronized (HostManager.class){
                 if(hostManager == null){
@@ -23,11 +23,11 @@ public class HostManager {
             }
         }
         return hostManager;
-    }
-
-    /*public static SimulateHostManager getHostManager(){
-        return new SimulateHostManager();
     }*/
+
+    public static SimulateHostManager getHostManager(){
+        return new SimulateHostManager();
+    }
 
     public static SharedPreferences getHostSp(){
         if(hostSp == null){
@@ -92,18 +92,18 @@ public class HostManager {
     }
 
     public static String getHostSpString(String key, String defValue){
-        /*if("UserToken".equals(key)){
-            return "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJ6ZWV3YWluIiwiYXBwQ29kZSI6Im1hbGxfdW1zIiwidXNlcklkIjoxNTI3Njk0MTI2MzkwNzYzNTksInVzZXJDb2RlIjoiend5X3Rlc3RfMDAxIiwiZXhwaXJlVGltZSI6MTY3NjUzNjEyNzcwNywidXNlclR5cGUiOjIsImV4cCI6MTY3NjUzNjEyN30._M4XqFHrqofumj-RNiHl-HKvWobIRczgb1lcW1sYu6s";
+        if("UserToken".equals(key)){
+            return "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJ6ZWV3YWluIiwiYXBwQ29kZSI6Im1hbGxfdW1zIiwidXNlcklkIjoxOTI3MDk0MjEwNTM2NTcwOTcsInVzZXJDb2RlIjoiYWlib3hfcmtfMDAzIiwiZXhwaXJlVGltZSI6MTY3ODI2MDg2NjM4MywidXNlclR5cGUiOjIsImV4cCI6MTY3ODI2MDg2Nn0.b_R4Nbh4O351jvwKoRNei8G5jhFwv0-nXUZx7sniNDM";
         }else if("PlatformInfo".equals(key)){
-            return "AndroidRockchipTVAIIP/1.2.3 (ZWN_AIIP_003 1.0; Android 12)";
+            return "AndroidAmlogicTVAIIP/1.2.3 (ZWN_AIIP_003 1.0; Android 9)";
         }else if("BaseUrl".equals(key)){
             return "https://www.zeewain.com";
         }else if("BasePath".equals(key)){
             return "/aiip-debug/api";
         }else{
             return null;
-        }*/
-        return getHostSp().getString(key, defValue);
+        }
+//        return getHostSp().getString(key, defValue);
     }
 
     public static void logoutClear(){
@@ -114,6 +114,41 @@ public class HostManager {
         }
     }
 
+    public static boolean isGestureAiEnable(){
+        try {
+            return getHostManager().isGestureAiEnable();
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public static void startGestureAi(boolean withActive){
+        try {
+            getHostManager().startGestureAi(withActive);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void stopGestureAi(){
+        try {
+            getHostManager().stopGestureAi();
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static boolean isGestureAIActive(){
+        try {
+            return getHostManager().isGestureAIActive();
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
     public static void gotoLoginPage(Context context){
         Intent intent = new Intent();
         intent.setComponent(new ComponentName(RePlugin.getHostContext().getPackageName(), "com.zee.launcher.login.ui.LoginActivity"));
@@ -122,8 +157,8 @@ public class HostManager {
     }
 
     public static Context getUseContext(Context context){
-        return RePlugin.getHostContext();
-        //return context;
+        //return RePlugin.getHostContext();
+        return context;
     }
 
     static class SimulateHostManager{
@@ -149,5 +184,13 @@ public class HostManager {
         void logoutClear() throws RemoteException {}
 
         void gotoLoginPage(){}
+
+        boolean isGestureAiEnable() throws RemoteException { return false;}
+
+        void startGestureAi(boolean withActive) throws RemoteException {}
+
+        void stopGestureAi() throws RemoteException {}
+
+        boolean isGestureAIActive () throws RemoteException {return false;}
     }
 }

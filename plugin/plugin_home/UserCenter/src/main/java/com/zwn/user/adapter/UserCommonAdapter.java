@@ -1,6 +1,9 @@
 package com.zwn.user.adapter;
 
 import android.annotation.SuppressLint;
+import android.os.Handler;
+import android.os.Looper;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -19,6 +22,7 @@ import com.zwn.user.data.model.UserPageCommonItem;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class UserCommonAdapter extends RecyclerView.Adapter<UserCommonAdapter.UserProductViewHolder> {
     private List<UserPageCommonItem> mItemList = new ArrayList<>();
@@ -26,6 +30,17 @@ public class UserCommonAdapter extends RecyclerView.Adapter<UserCommonAdapter.Us
     private OnRemoveItemListener mOnRemoveItemListener;
 
     private boolean mDelMode = false;
+    private Consumer<Integer> mOnItemFocusedListener;
+    private Runnable mOnItemKeyEventUp;
+    private Runnable mOnItemKeyEventDown;
+    private static final Handler sHandler = new Handler(Looper.getMainLooper());
+    private RecyclerView recyclerView;
+
+    @Override
+    public void onAttachedToRecyclerView(@NonNull RecyclerView recyclerView) {
+        super.onAttachedToRecyclerView(recyclerView);
+        this.recyclerView = recyclerView;
+    }
 
     @NonNull
     @Override
@@ -105,6 +120,18 @@ public class UserCommonAdapter extends RecyclerView.Adapter<UserCommonAdapter.Us
         mOnRemoveItemListener = onRemoveItemListener;
     }
 
+    public void setOnItemFocusedListener(Consumer<Integer> mOnItemFocusedListener) {
+        this.mOnItemFocusedListener = mOnItemFocusedListener;
+    }
+
+    public void setOnItemKeyEventUpListener(Runnable mOnItemKeyEventUp) {
+        this.mOnItemKeyEventUp = mOnItemKeyEventUp;
+    }
+
+    public void setOnItemKeyEventDownListener(Runnable mOnItemKeyEventDown) {
+        this.mOnItemKeyEventDown = mOnItemKeyEventDown;
+    }
+
     public Object getItem(int position) {
         return mItemList.get(position);
     }
@@ -139,19 +166,14 @@ public class UserCommonAdapter extends RecyclerView.Adapter<UserCommonAdapter.Us
                     mOnRemoveItemListener.onRemove(v, position, commonItem);
                 }
             });
-        }
 
-        public UserProductViewHolder(View view) {
-            super(view);
-            final int strokeWidth = DisplayUtil.dip2px(view.getContext(), 1);
-            ivItemUserProductImg = view.findViewById(R.id.iv_item_user_product_img);
-            tvItemUserProductTitle = view.findViewById(R.id.tv_item_user_product_title);
-            ivItemUserProductDel = view.findViewById(R.id.iv_item_user_product_del);
-            cardItemUserProduct = view.findViewById(R.id.card_item_user_product);
             cardItemUserProduct.setOnFocusChangeListener((v, hasFocus) -> {
                 if (hasFocus) {
+                    if (mOnItemFocusedListener != null) {
+                        mOnItemFocusedListener.accept(position);
+                    }
                     cardItemUserProduct.setStrokeColor(0xFFFA701F);
-                    cardItemUserProduct.setStrokeWidth(strokeWidth);
+                    cardItemUserProduct.setStrokeWidth(DisplayUtil.dip2px(itemView.getContext(), 1));
                     CommonUtils.scaleView(v, 1.1f);
                 } else {
                     cardItemUserProduct.setStrokeColor(0x00FFFFFF);
@@ -160,6 +182,28 @@ public class UserCommonAdapter extends RecyclerView.Adapter<UserCommonAdapter.Us
                     CommonUtils.scaleView(v, 1f);
                 }
             });
+            cardItemUserProduct.setOnKeyListener((v, keyCode, event) -> {
+                if (keyCode == KeyEvent.KEYCODE_DPAD_UP && event.getAction() == KeyEvent.ACTION_DOWN) {
+                    if (position <= 9) {
+                        sHandler.post(mOnItemKeyEventUp);
+                    }
+                } else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN && event.getAction() == KeyEvent.ACTION_DOWN){
+                    if (position >= getItemCount() - 10) {
+                        sHandler.post(mOnItemKeyEventDown);
+                    }
+                }
+                return false;
+            });
         }
+
+        public UserProductViewHolder(View view) {
+            super(view);
+            ivItemUserProductImg = view.findViewById(R.id.iv_item_user_product_img);
+            tvItemUserProductTitle = view.findViewById(R.id.tv_item_user_product_title);
+            ivItemUserProductDel = view.findViewById(R.id.iv_item_user_product_del);
+            cardItemUserProduct = view.findViewById(R.id.card_item_user_product);
+        }
+
+
     }
 }

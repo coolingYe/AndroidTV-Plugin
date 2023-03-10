@@ -9,6 +9,8 @@ public class SwiperLayout {
 
     @JSONField(name = "name")
     public String name;
+    @JSONField(name = "uid")
+    public String uid;
     @JSONField(name = "code")
     public String code;
     @JSONField(name = "config")

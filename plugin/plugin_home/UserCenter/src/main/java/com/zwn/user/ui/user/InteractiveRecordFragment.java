@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.zeewain.base.model.LoadState;
 import com.zeewain.base.views.CustomAlertDialog;
+import com.zeewain.base.widgets.CenterGridLayoutManager;
 import com.zwn.user.R;
 import com.zwn.user.adapter.UserCommonAdapter;
 import com.zwn.user.adapter.UserRecordListAdapter;
@@ -43,7 +44,8 @@ public class InteractiveRecordFragment extends BaseUserCenterFragment implements
 
         mAdapter = new UserRecordListAdapter(mViewModel.historyResp, this, this);
         rvUserCommPage = view.findViewById(R.id.rv_user_comm_page);
-        rvUserCommPage.setLayoutManager(new LinearLayoutManager(getContext()));
+        centerGridLayoutManager = new CenterGridLayoutManager(requireContext(),1, LinearLayoutManager.VERTICAL, false);
+        rvUserCommPage.setLayoutManager(centerGridLayoutManager);
         rvUserCommPage.setAdapter(mAdapter);
     }
 

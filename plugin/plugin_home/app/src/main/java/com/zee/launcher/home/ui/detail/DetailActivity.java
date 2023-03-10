@@ -36,6 +36,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.danikula.videocache.HttpProxyCacheServer;
+import com.danikula.videocache.file.Md5FileNameGenerator;
 import com.google.gson.Gson;
 import com.zee.launcher.home.HomeApplication;
 import com.zee.launcher.home.R;
@@ -57,6 +58,7 @@ import com.zee.launcher.home.utils.DownloadHelper;
 import com.zee.launcher.home.widgets.MyVideoView;
 import com.zee.manager.IZeeManager;
 
+import com.zee.paged.HorizontalRecyclerView;
 import com.zeewain.base.config.BaseConstants;
 import com.zeewain.base.config.SharePrefer;
 import com.zeewain.base.model.LoadState;
@@ -94,7 +96,7 @@ public class DetailActivity extends BaseActivity implements View.OnFocusChangeLi
     private FrameLayout layoutDownloadDetail;
     private ImageView imgProductDetail;
     private ImageView imgCollectDetail;
-    private RecyclerView recyclerViewGuessLike;
+    private HorizontalRecyclerView recyclerViewGuessLike;
     private RelativeLayout rlVideoRoot;
     private NetworkErrView networkErrViewDetail;
     private LoadingView loadingViewDetail;
@@ -118,6 +120,7 @@ public class DetailActivity extends BaseActivity implements View.OnFocusChangeLi
     private boolean isClickEnable = false;
     private boolean isAddCollected;
     private boolean isRequest=false;
+    private boolean isLastGestureAIActive = false;
     private static final int MSG_DOWNLOAD_ON_PROGRESS = 1;
     private static final int MSG_DOWNLOAD_ON_FAILED = 2;
     private static final int MSG_DOWNLOAD_ON_UPDATE = 3;
@@ -149,8 +152,8 @@ public class DetailActivity extends BaseActivity implements View.OnFocusChangeLi
 
         @Override
         public void onSuccess(String fileId, int type, File file) {
-            if(BaseConstants.DownloadFileType.PLUGIN_APP == type){
-                HostManager.installPlugin(fileId);
+            if(fileId.equals(currentFileId)){
+                handler.sendEmptyMessage(MSG_DOWNLOAD_ON_UPDATE);
             }
         }
 
@@ -251,6 +254,10 @@ public class DetailActivity extends BaseActivity implements View.OnFocusChangeLi
         initViewObservable();
 
         detailViewModel.initDataReq(skuId);
+
+        if(HostManager.isGestureAiEnable()) {
+            isLastGestureAIActive = HostManager.isGestureAIActive();
+        }
     }
 
     private void initClickListener(){
@@ -564,6 +571,15 @@ public class DetailActivity extends BaseActivity implements View.OnFocusChangeLi
 
         videoView.setOnErrorListener((mp, what, extra) -> {
             showToast("播放视频出错");
+            HttpProxyCacheServer proxy = HomeApplication.getProxy(this);
+            if(proxy.isCached(videoUrl)){
+                File cacheDir = new File(getExternalCacheDir(), "video-cache");
+                String fileName = new Md5FileNameGenerator().generate(videoUrl);
+                File file = new File(cacheDir, fileName);
+                if(file.exists()){
+                    file.delete();
+                }
+            }
             loadProgress.setVisibility(View.GONE);
             return true;
         });
@@ -769,14 +785,9 @@ public class DetailActivity extends BaseActivity implements View.OnFocusChangeLi
     }
 
     private void updateDownloadTip(int progress){
-        if (progress == 100) {
-            downloadIcon.setVisibility(View.GONE);
-            downloadPro.setText("立即体验");
-        } else {
-            downloadIcon.setVisibility(View.VISIBLE);
-            downloadIcon.setImageResource(R.mipmap.icon_download_loading);
-            downloadPro.setText(String.format("下载中(%s%%)", progress));
-        }
+        downloadIcon.setVisibility(View.VISIBLE);
+        downloadIcon.setImageResource(R.mipmap.icon_download_loading);
+        downloadPro.setText(String.format("下载中(%s%%)", progress));
         gradientProgressViewDetail.setProgress(progress);
     }
 
@@ -841,6 +852,10 @@ public class DetailActivity extends BaseActivity implements View.OnFocusChangeLi
         if(rlVideoRoot.getVisibility() == View.VISIBLE && isVideoInited){
             videoView.resume();
         }
+
+        if(HostManager.isGestureAiEnable()){
+            HostManager.startGestureAi(isLastGestureAIActive);
+        }
     }
 
     boolean isWindowOnFocus = true;
@@ -903,6 +918,9 @@ public class DetailActivity extends BaseActivity implements View.OnFocusChangeLi
             Gson gson = new Gson();
             AkSkResp akSkResp = gson.fromJson(akSkInfoString, AkSkResp.class);
             if(akSkResp != null) {
+                if(HostManager.isGestureAiEnable()) {
+                    isLastGestureAIActive = HostManager.isGestureAIActive();
+                }
                 Intent intent = new Intent();
                 intent.putExtra(BaseConstants.EXTRA_AUTH_AK_CODE, akSkResp.akCode);
                 intent.putExtra(BaseConstants.EXTRA_AUTH_SK_CODE, akSkResp.skCode);

@@ -11,6 +11,7 @@
         android:id="@+id/txt_list_tab"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:maxLines="1"
         android:textSize="17sp"
         android:gravity="center" />
 

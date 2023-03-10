@@ -23,7 +23,7 @@ public class MainViewPager2Adapter extends FragmentStateAdapter {
     @NonNull
     @Override
     public Fragment createFragment(int position) {
-        return HomeClassicFragment.newInstance(dataList.get(position).pageCode, position);
+        return HomeClassicFragment.newInstance(String.valueOf(position), position);
     }
 
     @Override

@@ -10,7 +10,6 @@ import android.os.RemoteException;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
@@ -40,7 +39,7 @@ import com.zwn.user.ui.user.MineFavoritesFragment;
 import java.util.ArrayList;
 import java.util.List;
 
-public class UserCenterActivity extends BaseActivity implements UserCenterCategoryAdapter.OnCategorySelectedListener, View.OnFocusChangeListener, ViewTreeObserver.OnGlobalFocusChangeListener {
+public class UserCenterActivity extends BaseActivity implements UserCenterCategoryAdapter.OnCategorySelectedListener, View.OnFocusChangeListener {
     private UserCenterViewModel viewModel;
     private RecyclerView recyclerViewUserCenterCategory;
 
@@ -62,8 +61,6 @@ public class UserCenterActivity extends BaseActivity implements UserCenterCatego
         initListener();
         initData();
         initViewObservable();
-
-        getWindow().getDecorView().getViewTreeObserver().addOnGlobalFocusChangeListener(this);
     }
 
     private void initData(){
@@ -178,12 +175,6 @@ public class UserCenterActivity extends BaseActivity implements UserCenterCatego
             v.clearAnimation();
             CommonUtils.scaleView(v, 1f);
         }
-    }
-
-    @Override
-    public void onGlobalFocusChanged(View oldFocus, View newFocus) {
-        Log.d("test", "onGlobalFocusChanged newFocus: " + newFocus);
-        Log.d("test", "onGlobalFocusChanged oldFocus: " + oldFocus);
     }
 
     @Override

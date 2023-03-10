@@ -123,7 +123,7 @@ public class MainTabAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         public LinearLayout llMainTabRoot;
 
         public void bind(PageLayoutDTO pagesDTO, int position){
-            txtListTab.setText(pagesDTO.pageName);
+            txtListTab.setText(pagesDTO.name);
             txtListTab.setTypeface(FontUtils.typeface);
             txtListTab.setTextColor(0xFFFFFFFF);
             llMainTabRoot.setBackground(null);
@@ -142,7 +142,7 @@ public class MainTabAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         public LinearLayout llMainTabRoot;
 
         public void bind(PageLayoutDTO pagesDTO, int position){
-            txtListTab.setText(pagesDTO.pageName);
+            txtListTab.setText(pagesDTO.name);
             txtListTab.setTypeface(FontUtils.typeface);
             txtListTab.setTextColor(0xFFFFEF9F);
             if(recyclerView.hasFocus())

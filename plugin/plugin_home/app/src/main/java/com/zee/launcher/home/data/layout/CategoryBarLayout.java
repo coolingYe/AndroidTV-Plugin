@@ -3,33 +3,29 @@ package com.zee.launcher.home.data.layout;
 
 import com.alibaba.fastjson.annotation.JSONField;
 
-import java.util.List;
-
 public class CategoryBarLayout {
-    @JSONField(name = "name")
-    public String name;
+
+    @JSONField(name = "id")
+    public String id;
+    @JSONField(name = "uid")
+    public String uid;
     @JSONField(name = "code")
     public String code;
+    @JSONField(name = "icon")
+    public String icon;
+    @JSONField(name = "name")
+    public String name;
+    @JSONField(name = "index")
+    public Integer index;
     @JSONField(name = "config")
     public ConfigDTO config;
-    @JSONField(name = "content")
-    public List<ContentDTO> content;
 
     public static class ConfigDTO {
+        @JSONField(name = "linkage")
+        public Boolean linkage;
         @JSONField(name = "showHome")
         public Boolean showHome;
         @JSONField(name = "direction")
         public String direction;
-        @JSONField(name = "linkage")
-        public Boolean linkage;
-    }
-
-    public static class ContentDTO {
-        @JSONField(name = "name")
-        public String name;
-        @JSONField(name = "code")
-        public String code;
-        @JSONField(name = "appSkus")
-        public List<String> appSkus;
     }
 }

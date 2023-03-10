@@ -9,6 +9,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -25,6 +26,7 @@ import com.zeewain.base.model.LoadState;
 import com.zeewain.base.ui.BaseActivity;
 import com.zeewain.base.utils.DensityUtils;
 import com.zeewain.base.utils.DisplayUtil;
+import com.zeewain.base.utils.ToastUtils;
 import com.zeewain.base.widgets.LoadingView;
 import com.zeewain.base.widgets.NetworkErrView;
 import com.zeewain.base.widgets.TopBarView;
@@ -108,7 +110,18 @@ public class MainActivity extends BaseActivity{
             viewPageMain.setCurrentItem(position);
         });
         recyclerViewMainTab.setAdapter(mainTabAdapter);
-        recyclerViewMainTab.requestFocus();
+        if(globalLayout.layout.pages.size() == 1){
+            recyclerViewMainTab.setVisibility(View.GONE);
+        }else{
+            recyclerViewMainTab.requestFocus();
+        }
+
+        if(globalLayout.layout.basic.pageHeaderLayout != null && globalLayout.layout.basic.pageHeaderLayout.config != null){
+            if(globalLayout.layout.basic.pageHeaderLayout.config.showLogo){
+                TopBarView topBarView = findViewById(R.id.top_bar_view);
+                topBarView.setShowTxtLogo(globalLayout.layout.basic.pageHeaderLayout.config.showLogo);
+            }
+        }
 
         mainViewPager2Adapter = new MainViewPager2Adapter(globalLayout.layout.pages, getSupportFragmentManager(), getLifecycle());
         viewPageMain.setAdapter(mainViewPager2Adapter);
@@ -163,13 +176,15 @@ public class MainActivity extends BaseActivity{
                 if(mainTabAdapter != null){
                     mainTabAdapter.setSelectedPosition(position);
                     centerLayoutManager.smoothScrollToPosition(recyclerViewMainTab, new RecyclerView.State(), position);
-                    centerLayoutManager.findViewByPosition(position).requestFocus();
+                    View view = centerLayoutManager.findViewByPosition(position);
+                    if(view != null) {
+                        view.requestFocus();
+                    }
                 }
             }
         });
     }
 
-    @SuppressLint("NotifyDataSetChanged")
     private void initViewObservable() {
         viewModel.mldServicePackInfoLoadState.observe(this, loadState -> {
             if (LoadState.Loading == loadState) {
@@ -187,6 +202,13 @@ public class MainActivity extends BaseActivity{
                 loadingViewHomeClassic.stopAnim();
                 loadingViewHomeClassic.setVisibility(View.GONE);
                 networkErrViewHomeClassic.setVisibility(View.VISIBLE);
+            }
+        });
+
+        viewModel.mldToastMsg.observe(this, new Observer<String>() {
+            @Override
+            public void onChanged(String msg) {
+                showToast(msg);
             }
         });
     }

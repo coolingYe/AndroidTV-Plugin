@@ -4,6 +4,8 @@ import android.annotation.SuppressLint;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.AccelerateDecelerateInterpolator;
+import android.view.animation.Interpolator;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -14,6 +16,7 @@ import com.zwn.user.R;
 import com.zwn.user.data.model.UserPageCommonItem;
 import com.zwn.user.data.protocol.response.HistoryResp;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,6 +25,8 @@ public class UserRecordListAdapter extends RecyclerView.Adapter<RecyclerView.Vie
     private static final int TYPE_RECORD_IN_WEEK = 2;
     private static final int TYPE_RECORD_THIS_MONTH = 3;
     private static final int TYPE_RECORD_EARLIER = 4;
+
+    private RecyclerView recyclerView;
 
     private final UserCommonAdapter.OnItemClickListener mOnItemClickListener;
     private final UserCommonAdapter.OnRemoveItemListener mOnRemoveItemListener;
@@ -51,6 +56,12 @@ public class UserRecordListAdapter extends RecyclerView.Adapter<RecyclerView.Vie
                 recordTypeList.add(TYPE_RECORD_EARLIER);
             }
         }
+    }
+
+    @Override
+    public void onAttachedToRecyclerView(@NonNull RecyclerView recyclerView) {
+        super.onAttachedToRecyclerView(recyclerView);
+        this.recyclerView = recyclerView;
     }
 
     @SuppressLint("NotifyDataSetChanged")
@@ -84,13 +95,13 @@ public class UserRecordListAdapter extends RecyclerView.Adapter<RecyclerView.Vie
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
         if(recordTypeList.get(position) == TYPE_RECORD_TODAY){
-            ((CommonGridViewHolder)holder).bind(historyResp.today, "今天", mDelMode);
+            ((CommonGridViewHolder)holder).bind(historyResp.today, "今天", mDelMode, position);
         }else if(recordTypeList.get(position) == TYPE_RECORD_IN_WEEK){
-            ((CommonGridViewHolder)holder).bind(historyResp.inAWeek, "七天内", mDelMode);
+            ((CommonGridViewHolder)holder).bind(historyResp.inAWeek, "七天内", mDelMode, position);
         }else if(recordTypeList.get(position) == TYPE_RECORD_THIS_MONTH){
-            ((CommonGridViewHolder)holder).bind(historyResp.thisMonth, "本月", mDelMode);
+            ((CommonGridViewHolder)holder).bind(historyResp.thisMonth, "本月", mDelMode, position);
         }else {
-            ((CommonGridViewHolder)holder).bind(historyResp.earlier, "更早", mDelMode);
+            ((CommonGridViewHolder)holder).bind(historyResp.earlier, "更早", mDelMode, position);
         }
     }
 
@@ -120,7 +131,7 @@ public class UserRecordListAdapter extends RecyclerView.Adapter<RecyclerView.Vie
         private final TextView txtTitleRecordType;
         private final UserCommonAdapter userCommonAdapter;
 
-        public void bind(List<HistoryResp.Record> recordList, String title, boolean deleteMode){
+        public void bind(List<HistoryResp.Record> recordList, String title, boolean deleteMode, int position){
             userCommonAdapter.clearData();
             for (HistoryResp.Record record: recordList) {
                 UserPageCommonItem commonItem = new UserPageCommonItem(record.skuUrl,
@@ -130,6 +141,16 @@ public class UserRecordListAdapter extends RecyclerView.Adapter<RecyclerView.Vie
             recyclerViewRecordType.setAdapter(userCommonAdapter);
             txtTitleRecordType.setText(title);
             userCommonAdapter.setDelMode(deleteMode);
+
+            if (position == 0) {
+                userCommonAdapter.setOnItemKeyEventUpListener(() -> {
+                    scrollToAmount(recyclerView, 0,-300);
+                });
+            } else if (position == getItemCount() -1) {
+                userCommonAdapter.setOnItemKeyEventDownListener(() -> {
+                    scrollToAmount(recyclerView, 0,300);
+                });
+            }
         }
 
         public CommonGridViewHolder(View view) {
@@ -144,4 +165,16 @@ public class UserRecordListAdapter extends RecyclerView.Adapter<RecyclerView.Vie
             recyclerViewRecordType.setLayoutManager(new GridLayoutManager(view.getContext(), 5));
         }
     }
+
+    private void scrollToAmount(RecyclerView recyclerView, int dx, int dy) {
+        try {
+            Class<? extends RecyclerView> recClass = recyclerView.getClass();
+            Method smoothMethod = recClass.getDeclaredMethod("smoothScrollBy", int.class, int.class, Interpolator.class, int.class);
+            smoothMethod.invoke(recyclerView, dx, dy, new AccelerateDecelerateInterpolator(), 400);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+
 }

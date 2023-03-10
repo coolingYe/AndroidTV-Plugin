@@ -40,6 +40,7 @@ public class MainViewModel extends BaseViewModel {
     public MutableLiveData<Boolean> mldNetConnected = new MutableLiveData<>();
     public MutableLiveData<Integer> mldOnPause = new MutableLiveData<>();
     public MutableLiveData<Integer> mldOnResume = new MutableLiveData<>();
+    public MutableLiveData<String> mldToastMsg = new MutableLiveData<>();
     public MutableLiveData<ProductRecordListLoadState> mldProductRecodeListLoadState = new MutableLiveData<>();
     public MutableLiveData<LoadState> mldServicePackInfoLoadState = new MutableLiveData<>();
     public MutableLiveData<PagedListLoadState<ProductListMo.Record>> mldModuleListPagedLoadState = new MutableLiveData<>();
@@ -163,10 +164,16 @@ public class MainViewModel extends BaseViewModel {
                     @Override
                     public void onNext(@NonNull BaseResp<ServicePkgInfoResp> response) {
                         if(response.code == BaseConstants.API_HANDLE_SUCCESS){
-                            GlobalLayout globalLayoutTmp = GlobalLayoutHelper.analysisGlobalLayout(response.data.layoutJson);
-                            GlobalLayoutHelper.handleGlobalLayoutPages(globalLayoutTmp);
-                            globalLayout = globalLayoutTmp;
-                            mldServicePackInfoLoadState.setValue(LoadState.Success);
+                            globalLayout = GlobalLayoutHelper.analysisGlobalLayout(response.data.themeJson);
+                            if(globalLayout == null){
+                                mldServicePackInfoLoadState.setValue(LoadState.Failed);
+                                mldToastMsg.setValue("服务包配置错误！");
+                            }else{
+                                mldServicePackInfoLoadState.setValue(LoadState.Success);
+                            }
+                        }else{
+                            mldToastMsg.setValue(response.message);
+                            mldServicePackInfoLoadState.setValue(LoadState.Failed);
                         }
                     }
 

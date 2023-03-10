@@ -61,7 +61,7 @@ public class BaseConstants {
     }
 
     public static class ApiPath{
-        public static final String SERVICE_PACKAGE_INFO = "/dmsmgr/purchase/device/servicePackInfo";
+        public static final String SERVICE_PACKAGE_INFO = "/dmsmgr/purchase/device/servicePackage";
         public static final String PRODUCT_RECOMMEND_LIST = "/dmsmgr/purchase/device/recommend";
         public static final String PRODUCT_ONLINE_QUERY_LIST = "/product/online/query/list";
         public static final String PRODUCT_DETAIL = "/product/online/detail";
